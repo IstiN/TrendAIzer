@@ -46,15 +46,18 @@
 
             var annotationData = new google.visualization.DataTable();
             annotationData.addColumn('datetime', 'Time');
-            annotationData.addColumn('number', 'Price');
+            annotationData.addColumn('number', 'Long');
+            annotationData.addColumn('number', 'Short');
+            annotationData.addColumn('number', 'Close');
             annotationData.addColumn({type: 'string', role: 'tooltip', 'p': {'html': true}});
 
             <#list decisions as decision>
-                <#assign kline = decision.data>
                 annotationData.addRow([
-                    new Date(${kline.openTime?c}),
-                    ${kline.closePrice?string["0.##"]},
-                    '<div style="padding:5px;"><strong>${decision.action}</strong><br/>Time: ' + new Date(${kline.openTime?c}).toLocaleString() + '<br/>Open: ${kline.openPrice?string["0.##"]}<br/>High: ${kline.highPrice?string["0.##"]}<br/>Low: ${kline.lowPrice?string["0.##"]}<br/>Close: ${kline.closePrice?string["0.##"]}<br/>Volume: ${kline.volume?string["0.##"]}<br/>Message: ${decision.message}</div>'
+                    new Date(${decision.data.openTime?c}),
+                    ${(decision.action == 'LONG')?then(decision.data.closePrice?string["0.##"], 'null')},
+                    ${(decision.action == 'SHORT')?then(decision.data.closePrice?string["0.##"], 'null')},
+                    ${(decision.action == 'CLOSE')?then(decision.data.closePrice?string["0.##"], 'null')},
+                    '<div style="padding:5px;"><strong>${decision.action}</strong><br/>Time: ' + new Date(${decision.data.openTime?c}).toLocaleString() + '<br/>Open: ${decision.data.openPrice?string["0.##"]}<br/>High: ${decision.data.highPrice?string["0.##"]}<br/>Low: ${decision.data.lowPrice?string["0.##"]}<br/>Close: ${decision.data.closePrice?string["0.##"]}<br/>Volume: ${decision.data.volume?string["0.##"]}<br/>Message: ${decision.message}</div>'
                 ]);
             </#list>
 
@@ -80,7 +83,9 @@
                 tooltip: {isHtml: true},
                 series: {
                     0: {type: 'candlesticks'},
-                    1: {type: 'scatter', pointShape: 'circle', pointSize: 5, color: 'red'}
+                    1: {type: 'scatter', pointShape: { type: 'triangle', rotation: 0 }, pointSize: 16, color: '#00FF00', stroke: '#000000', strokeWidth: 2},
+                    2: {type: 'scatter', pointShape: { type: 'triangle', rotation: 180 }, pointSize: 16, color: '#FF0000', stroke: '#000000', strokeWidth: 2},
+                    3: {type: 'scatter', pointShape: 'diamond', pointSize: 12, color: '#FFA500', stroke: '#000000', strokeWidth: 2}  // Changed to orange
                 },
                 explorer: {
                     actions: ['dragToZoom', 'rightClickToReset'],
@@ -100,7 +105,7 @@
                 'full',
                 [[0, 0]],
                 [1, 2, 3, 4],
-                [1, 2]
+                [1, 2, 3, 4]
             );
 
             var chart = new google.visualization.ComboChart(document.getElementById('chart_div'));

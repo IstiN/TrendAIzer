@@ -64,8 +64,8 @@ public class BinanceTradingAlgo {
 
         List<Strategy> strategies = new ArrayList<>();
 
-        //strategies.add(new BasicStrategy(cacheId));
-        strategies.add(new AdvancedStrategy(cacheId));
+        strategies.add(new BasicStrategy(cacheId));
+        //strategies.add(new AdvancedStrategy(cacheId));
         Trader trader = new Trader(1000d, 0.03d, 0.02d, 0.1d);
         for (Strategy strategy : strategies) {
 
@@ -91,7 +91,7 @@ public class BinanceTradingAlgo {
             decisions.add(decisionData);
 
             Map<String, Object> closedDesitionData = new HashMap<>();
-            closedDesitionData.put("action", "close");
+            closedDesitionData.put("action", "CLOSE");
             closedDesitionData.put("data", deal.getClosedKlineData());
             closedDesitionData.put("message", deal.getMessage() == null ? "Still open" : deal.getMessage());
             decisions.add(closedDesitionData);
