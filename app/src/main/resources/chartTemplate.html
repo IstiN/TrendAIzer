@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Algorithm Chart</title>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <style>
+        #chart_container {
+            width: 100%;
+            height: 1800px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            white-space: nowrap;
+        }
+        #chart_div {
+            display: inline-block;
+            height: 100%;
+        }
+    </style>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            var data = new google.visualization.DataTable();
+            data.addColumn('datetime', 'Time');
+            data.addColumn('number', 'Low');
+            data.addColumn('number', 'Open');
+            data.addColumn('number', 'Close');
+            data.addColumn('number', 'High');
+
+            var rows = [];
+            <#list klineData as kline>
+                rows.push([
+                    new Date(${kline.openTime?c}),
+                    ${kline.lowPrice?string["0.##"]},
+                    ${kline.openPrice?string["0.##"]},
+                    ${kline.closePrice?string["0.##"]},
+                    ${kline.highPrice?string["0.##"]}
+                ]);
+            </#list>
+
+            data.addRows(rows);
+
+            var annotationData = new google.visualization.DataTable();
+            annotationData.addColumn('datetime', 'Time');
+            annotationData.addColumn('number', 'Price');
+            annotationData.addColumn({type: 'string', role: 'tooltip', 'p': {'html': true}});
+
+            <#list decisions as decision>
+                <#assign kline = decision.data>
+                annotationData.addRow([
+                    new Date(${kline.openTime?c}),
+                    ${kline.closePrice?string["0.##"]},
+                    '<div style="padding:5px;"><strong>${decision.action}</strong><br/>Time: ' + new Date(${kline.openTime?c}).toLocaleString() + '<br/>Open: ${kline.openPrice?string["0.##"]}<br/>High: ${kline.highPrice?string["0.##"]}<br/>Low: ${kline.lowPrice?string["0.##"]}<br/>Close: ${kline.closePrice?string["0.##"]}<br/>Volume: ${kline.volume?string["0.##"]}<br/>Message: ${decision.message}</div>'
+                ]);
+            </#list>
+
+            var options = {
+                width: 10000,
+                height: 1600,
+                legend: 'none',
+                candlestick: {
+                    fallingColor: { strokeWidth: 0, fill: '#a52714' },
+                    risingColor: { strokeWidth: 0, fill: '#0f9d58' }
+                },
+                hAxis: {
+                    format: 'MM/dd/yyyy HH:mm',
+                    slantedText: true,
+                    slantedTextAngle: 45,
+                    textStyle: {
+                        fontSize: 10
+                    }
+                },
+                vAxis: {
+                    title: 'Price'
+                },
+                tooltip: {isHtml: true},
+                series: {
+                    0: {type: 'candlesticks'},
+                    1: {type: 'scatter', pointShape: 'circle', pointSize: 5, color: 'red'}
+                },
+                explorer: {
+                    actions: ['dragToZoom', 'rightClickToReset'],
+                    axis: 'horizontal',
+                    keepInBounds: true,
+                    maxZoomIn: 4.0
+                },
+                chartArea: {
+                    width: '95%',
+                    height: '80%'
+                }
+            };
+
+            var joinedData = google.visualization.data.join(
+                data,
+                annotationData,
+                'full',
+                [[0, 0]],
+                [1, 2, 3, 4],
+                [1, 2]
+            );
+
+            var chart = new google.visualization.ComboChart(document.getElementById('chart_div'));
+            chart.draw(joinedData, options);
+        }
+    </script>
+</head>
+<body>
+<h1>Trading Algorithm - Historical Data</h1>
+<div id="chart_container">
+    <div id="chart_div"></div>
+</div>
+</body>
+</html>
