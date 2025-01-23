@@ -22,13 +22,15 @@ public class ConfigReader {
 
             properties.load(input);
 
-            String apiKey = properties.getProperty("api.key");
-            String apiSecret = properties.getProperty("api.secret");
+            String apiKey = properties.getProperty("binance.key");
+            String apiSecret = properties.getProperty("binance.secret");
+            Boolean indicatorCache = Boolean.parseBoolean(properties.getProperty("indicator.cache"));
+            Boolean binanceCache = Boolean.parseBoolean(properties.getProperty("binance.cache"));
 
             if (apiKey == null || apiSecret == null) {
                 throw new IllegalArgumentException("API key or secret not found in properties file.");
             }
-            this.config = new Config(apiKey, apiSecret);
+            this.config = new Config(apiKey, apiSecret, indicatorCache, binanceCache);
 
         } catch (Exception e) {
             e.printStackTrace();

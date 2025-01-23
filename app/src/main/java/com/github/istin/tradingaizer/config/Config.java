@@ -8,4 +8,6 @@ import lombok.Data;
 public class Config {
     private String apiKey;
     private String apiSecret;
+    private Boolean indicatorCache;
+    private Boolean binanceCache;
 }

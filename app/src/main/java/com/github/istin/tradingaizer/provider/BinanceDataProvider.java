@@ -1,6 +1,8 @@
 package com.github.istin.tradingaizer.provider;
 
 import com.binance.connector.client.impl.SpotClientImpl;
+import com.github.istin.tradingaizer.config.Config;
+import com.github.istin.tradingaizer.config.ConfigReader;
 import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.utils.FilesUtils;
 import com.github.istin.tradingaizer.utils.HashUtils;
@@ -13,10 +15,12 @@ import java.util.Map;
 
 public class BinanceDataProvider implements DataProvider {
 
+    private final Boolean isBinanceCache;
     private SpotClientImpl client;
 
     public BinanceDataProvider(String apiKey, String apiSecret) {
         this.client = new SpotClientImpl(apiKey, apiSecret);
+        this.isBinanceCache = new ConfigReader().getConfig().getBinanceCache();
         FilesUtils.createCacheFolder();
     }
 
@@ -67,16 +71,20 @@ public class BinanceDataProvider implements DataProvider {
     }
 
     private String getResponseFromCacheOrAPI(Map<String, Object> parameters) {
-        String cacheFileName = generateCacheFileName(parameters);
-        String cachedResponse = FilesUtils.readFromCache(cacheFileName);
+        if (isBinanceCache) {
+            String cacheFileName = generateCacheFileName(parameters);
+            String cachedResponse = FilesUtils.readFromCache(cacheFileName);
 
-        if (cachedResponse != null) {
-            return cachedResponse;
+            if (cachedResponse != null) {
+                return cachedResponse;
+            }
+
+            String response = client.createMarket().klines(parameters);
+            FilesUtils.writeToCache(cacheFileName, response);
+            return response;
+        } else {
+            return client.createMarket().klines(parameters);
         }
-
-        String response = client.createMarket().klines(parameters);
-        FilesUtils.writeToCache(cacheFileName, response);
-        return response;
     }
 
     private String generateCacheFileName(Map<String, Object> parameters) {
