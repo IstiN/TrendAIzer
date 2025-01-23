@@ -43,6 +43,29 @@ public class MACDIndicator extends Indicator {
         return macd - signalLine;  // This is the MACD histogram value, you can modify the return value if needed
     }
 
+    public double calculateSignalLine(List<KlineData> historicalData) {
+        if (historicalData.size() < slowPeriod) {
+            throw new IllegalArgumentException("Not enough data to calculate MACD signal line.");
+        }
+
+        List<Double> closePrices = new ArrayList<>();
+        for (KlineData data : historicalData) {
+            closePrices.add(data.getClosePrice());
+        }
+
+        List<Double> fastEMAList = calculateEMAList(closePrices, fastPeriod);
+        List<Double> slowEMAList = calculateEMAList(closePrices, slowPeriod);
+
+        List<Double> macdValues = new ArrayList<>();
+        for (int i = 0; i < slowEMAList.size(); i++) {
+            macdValues.add(fastEMAList.get(i + (slowPeriod - fastPeriod)) - slowEMAList.get(i));
+        }
+
+        List<Double> signalLineList = calculateEMAList(macdValues, signalPeriod);
+
+        return signalLineList.get(signalLineList.size() - 1);  // Return the most recent signal line value
+    }
+
     private List<Double> calculateEMAList(List<Double> prices, int period) {
         List<Double> emaList = new ArrayList<>();
         double multiplier = 2.0 / (period + 1);

@@ -1,5 +1,5 @@
 package com.github.istin.tradingaizer.model;
 
 public enum Decision {
-    LONG, SHORT, HOLD
+    LONG, SHORT, HOLD, CLOSE
 }
