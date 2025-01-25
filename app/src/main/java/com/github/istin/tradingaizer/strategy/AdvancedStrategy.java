@@ -19,10 +19,12 @@ public class AdvancedStrategy extends Strategy {
 
     @Override
     public DecisionReason generateDecision(List<? extends StatData> historicalData) {
-        double rsi = calcOrFromCache(new RSIIndicator(14), historicalData, Timeframe.M1);
+        Double rsi = calcOrFromCache(new RSIIndicator(14), historicalData, Timeframe.M1);
         MACDIndicator.Result macdResult = calcOrFromCache(new MACDIndicator(12, 26, 9), historicalData, Timeframe.M1);
-        double superTrendSignal = calcOrFromCache(new SuperTrendIndicator(10, 3.0), historicalData, Timeframe.M1);
-
+        Double superTrendSignal = calcOrFromCache(new SuperTrendIndicator(10, 3.0), historicalData, Timeframe.M1);
+        if (rsi == null || macdResult == null || superTrendSignal == null) {
+            return new DecisionReason(Decision.HOLD, "No clear signal");
+        }
         if (superTrendSignal > 0 && rsi < 40 && macdResult.getMacd() > 0) {
             return new DecisionReason(Decision.LONG, "SuperTrend is bullish, RSI is below 40, and MACD is bullish");
         } else if (superTrendSignal < 0 && rsi > 60 && macdResult.getMacd() < 0) {

@@ -15,7 +15,8 @@ public class ATRIndicator extends Indicator<Double> {
     @Override
     public Double calculate(List<StatData> historicalData) {
         if (historicalData.size() < period + 1) {
-            throw new IllegalArgumentException("Not enough data to calculate ATR");
+            System.out.println("Not enough data to calculate ATR");
+            return null;
         }
 
         double atr = 0.0;

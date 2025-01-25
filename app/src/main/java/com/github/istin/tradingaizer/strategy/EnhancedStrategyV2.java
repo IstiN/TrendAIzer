@@ -21,6 +21,10 @@ public class EnhancedStrategyV2 extends Strategy {
         List<? extends StatData> data15m = getData(historicalData, Timeframe.M15);
         List<? extends StatData> data1h = getData(historicalData, Timeframe.H1);
 
+        if (data5m.isEmpty() || data15m.isEmpty() || data1h.isEmpty()) {
+            return new DecisionReason(Decision.HOLD, "No clear signal");
+        }
+
         // Initialize indicators for 5m data
         MACDIndicator macd5mIndicator = new MACDIndicator(12, 26, 9);
         RSIIndicator rsi5mIndicator = new RSIIndicator(14);
@@ -36,11 +40,17 @@ public class EnhancedStrategyV2 extends Strategy {
 
         // Calculate indicators on 5m data
         MACDIndicator.Result macdValue5m = calcOrFromCache(macd5mIndicator, data5m, Timeframe.M5);
-        double rsiValue5m = calcOrFromCache(rsi5mIndicator, data5m, Timeframe.M5);
+        Double rsiValue5m = calcOrFromCache(rsi5mIndicator, data5m, Timeframe.M5);
+
         BollingerBandsIndicator.Result bollingerBands5mResult = calcOrFromCache(bollingerBands5mIndicator, data5m, Timeframe.M5);
+
+        Double superTrendSignal5m = calcOrFromCache(superTrend5mIndicator, data5m, Timeframe.M5);
+        if (macdValue5m == null || rsiValue5m == null || bollingerBands5mResult == null || superTrendSignal5m == null) {
+            return new DecisionReason(Decision.HOLD, "No clear entry or exit conditions met.");
+        }
+
         double bollingerUpper = bollingerBands5mResult.getUpperBand();
         double bollingerLower = bollingerBands5mResult.getLowerBand();
-        double superTrendSignal5m = calcOrFromCache(superTrend5mIndicator, data5m, Timeframe.M5);
 
         // Log 5m indicators
         System.out.println("5m Indicators:");
@@ -50,7 +60,7 @@ public class EnhancedStrategyV2 extends Strategy {
         System.out.println("SuperTrend Signal: " + superTrendSignal5m);
 
         // Calculate indicators on 15m data
-        double emaValue15m = calcOrFromCache(ema15mIndicator, data15m, Timeframe.M15);
+        Double emaValue15m = calcOrFromCache(ema15mIndicator, data15m, Timeframe.M15);
 
         // Log 15m indicators
         System.out.println("15m Indicators:");
@@ -58,8 +68,11 @@ public class EnhancedStrategyV2 extends Strategy {
 
         // Calculate indicators on 1h data
         MACDIndicator.Result macdValue1h = calcOrFromCache(macd1hIndicator, data1h, Timeframe.H1);
-        double rsiValue1h = calcOrFromCache(rsi1hIndicator, data1h, Timeframe.H1);
+        Double rsiValue1h = calcOrFromCache(rsi1hIndicator, data1h, Timeframe.H1);
 
+        if (emaValue15m == null || macdValue1h == null || rsiValue1h == null) {
+            return new DecisionReason(Decision.HOLD, "No clear entry or exit conditions met.");
+        }
         // Log 1h indicators
         System.out.println("1h Indicators:");
         System.out.println("MACD: " + macdValue1h.getMacd() + ", Signal Line: " + macdValue1h.getSignalLine());

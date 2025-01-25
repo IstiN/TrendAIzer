@@ -1,11 +1,9 @@
 package com.github.istin.tradingaizer.provider;
 
 import com.binance.connector.client.impl.SpotClientImpl;
-import com.github.istin.tradingaizer.config.Config;
 import com.github.istin.tradingaizer.config.ConfigReader;
 import com.github.istin.tradingaizer.model.KlineData;
-import com.github.istin.tradingaizer.utils.FilesUtils;
-import com.github.istin.tradingaizer.utils.HashUtils;
+import com.github.istin.tradingaizer.utils.CacheManager;
 import org.json.JSONArray;
 
 import java.util.ArrayList;
@@ -15,13 +13,14 @@ import java.util.Map;
 
 public class BinanceDataProvider implements DataProvider {
 
-    private final Boolean isBinanceCache;
-    private SpotClientImpl client;
+    private final boolean isBinanceCache;
+    private final SpotClientImpl client;
+    private final CacheManager cacheManager;
 
     public BinanceDataProvider(String apiKey, String apiSecret) {
         this.client = new SpotClientImpl(apiKey, apiSecret);
         this.isBinanceCache = new ConfigReader().getConfig().getBinanceCache();
-        FilesUtils.createCacheFolder();
+        this.cacheManager = new CacheManager("binance");
     }
 
     @Override
@@ -71,16 +70,15 @@ public class BinanceDataProvider implements DataProvider {
     }
 
     private String getResponseFromCacheOrAPI(Map<String, Object> parameters) {
+        String cacheFileName = generateCacheFileName(parameters);
         if (isBinanceCache) {
-            String cacheFileName = generateCacheFileName(parameters);
-            String cachedResponse = FilesUtils.readFromCache(cacheFileName);
-
+            String cachedResponse = cacheManager.readFromCache(cacheFileName);
             if (cachedResponse != null) {
                 return cachedResponse;
             }
 
             String response = client.createMarket().klines(parameters);
-            FilesUtils.writeToCache(cacheFileName, response);
+            cacheManager.writeToCache(cacheFileName, response);
             return response;
         } else {
             return client.createMarket().klines(parameters);
@@ -93,7 +91,6 @@ public class BinanceDataProvider implements DataProvider {
             sb.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
         }
         String paramString = sb.toString();
-        return HashUtils.getMd5(paramString) + ".json";
+        return CacheManager.hash(paramString) + ".json";
     }
-
 }

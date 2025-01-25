@@ -24,10 +24,13 @@ public class OptimizedStrategy extends Strategy {
 
         // Calculate indicator values
         MACDIndicator.Result macd = calcOrFromCache(macdIndicator, historicalData, Timeframe.M1);
-        double rsi = calcOrFromCache(rsiIndicator, historicalData, Timeframe.M1);
-        double atr = calcOrFromCache(atrIndicator, historicalData, Timeframe.M1);
-        double ma = calcOrFromCache(maIndicator, historicalData, Timeframe.M1);
+        Double rsi = calcOrFromCache(rsiIndicator, historicalData, Timeframe.M1);
+        Double atr = calcOrFromCache(atrIndicator, historicalData, Timeframe.M1);
+        Double ma = calcOrFromCache(maIndicator, historicalData, Timeframe.M1);
 
+        if (macd == null || rsi == null || atr == null || ma == null) {
+            return new DecisionReason(Decision.HOLD, "No clear signal");
+        }
         // Retrieve the latest data
         StatData latestData = historicalData.get(historicalData.size() - 1);
         double latestPrice = latestData.getClosePrice();

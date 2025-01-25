@@ -11,6 +11,7 @@ import com.github.istin.tradingaizer.trader.DealExecutor;
 import com.github.istin.tradingaizer.trader.StatData;
 import com.github.istin.tradingaizer.trader.Trader;
 import com.github.istin.tradingaizer.utils.BinanceDataUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,18 +21,42 @@ public class StrategyTestingApp {
     public static void main(String[] args) {
         BinanceDataUtils.Result result = BinanceDataUtils.readBtcHistoricalData();
 
-        List<StatData> timelineSimulation = new ArrayList<>();
 
         List<Strategy> strategies = new ArrayList<>();
-        ChartDataProvider chartDataProvider = new ChartDataProvider(result.historicalData());
-        strategies.add(new BasicStrategy(result.cacheId(), chartDataProvider));
-        //strategies.add(new AdvancedStrategy(result.cacheId()));
-        //strategies.add(new ChartBasedStrategy(result.cacheId()));
-        //strategies.add(new OptimizedStrategy(result.cacheId()));
+        ChartDataProvider chartDataProvider = new ChartDataProvider(result.cacheId(), result.historicalData());
+//        strategies.add(new BasicStrategy(result.cacheId(), chartDataProvider));
+        strategies.add(new AdaptiveMultiTimeframeStrategy(result.cacheId(), chartDataProvider));
+        //strategies.add(new AdvancedStrategy(result.cacheId(), chartDataProvider));
+//        strategies.add(new ChartBasedStrategy(result.cacheId(), chartDataProvider));
+//        strategies.add(new EnhancedStrategy(result.cacheId(), chartDataProvider));
+//        strategies.add(new EnhancedStrategy1(result.cacheId(), chartDataProvider));
+//        strategies.add(new EnhancedStrategy2(result.cacheId(), chartDataProvider));
+        //strategies.add(new OptimizedStrategy(result.cacheId(), chartDataProvider));
 
-        //strategies.add(new EnhancedStrategy1(result.cacheId(), chartDataProvider));
+        //strategies.add(new EnhancedStrategyV2(result.cacheId(), chartDataProvider));
+
         String ticker = "BTCUSDT";
-        Trader trader = new Trader(1000d, 0.3d, 0.04d, 1d, new DealExecutor() {
+        for (Strategy strategy : strategies) {
+            List<StatData> timelineSimulation = new ArrayList<>();
+            System.out.println(strategy.getClass().getSimpleName() + " starting");
+            Trader trader = createTrader();
+            for (KlineData data : result.historicalData()) {
+                timelineSimulation.add(data);
+                DecisionReason decisionReason = strategy.generateDecision(timelineSimulation);
+                trader.decisionTrigger(ticker, decisionReason, data);
+            }
+            List<Deal> closedDeals = trader.getClosedDeals();
+            ReportUtils.generateReport("trading_chart.html", closedDeals, result.historicalData());
+            trader.calculateWinRate();
+            System.out.println(" " + strategy.getClass().getSimpleName() + " ended");
+        }
+
+
+    }
+
+    @NotNull
+    private static Trader createTrader() {
+        Trader trader = new Trader(1000d, 0.03d, 0.04d, 1d, new DealExecutor() {
             @Override
             public void submitDeal(Deal deal) {
                 //fake deal submition
@@ -53,24 +78,7 @@ public class StrategyTestingApp {
 
             }
         });
-
-        for (Strategy strategy : strategies) {
-            for (KlineData data : result.historicalData()) {
-                timelineSimulation.add(data);
-                try {
-                    DecisionReason decisionReason = strategy.generateDecision(timelineSimulation);
-                    trader.decisionTrigger(ticker, decisionReason, data);
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                    trader.decisionTrigger(ticker, new DecisionReason(Decision.HOLD, "no clear signal found"), data);
-                }
-            }
-
-        }
-
-        List<Deal> closedDeals = trader.getClosedDeals();
-        ReportUtils.generateReport("trading_chart.html", closedDeals, result.historicalData());
-        trader.calculateWinRate();
+        return trader;
     }
 
 }

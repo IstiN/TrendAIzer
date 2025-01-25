@@ -17,10 +17,13 @@ public class EnhancedStrategy extends Strategy {
     @Override
     public DecisionReason generateDecision(List<? extends StatData> historicalData) {
         // Aggregate data into different timeframes
-        List<StatData> data5m = TimeframeAggregator.convertToTimeframe(historicalData, Timeframe.M5);  // 5-minute data
-        List<StatData> data15m = TimeframeAggregator.convertToTimeframe(historicalData, Timeframe.M15); // 15-minute data
-        List<StatData> data1h = TimeframeAggregator.convertToTimeframe(historicalData, Timeframe.H1); // 1-hour data
+        List<? extends StatData> data5m = getData(historicalData, Timeframe.M5);  // 5-minute data
+        List<? extends StatData> data15m = getData(historicalData, Timeframe.M15); // 15-minute data
+        List<? extends StatData> data1h = getData(historicalData, Timeframe.H1); // 1-hour data
 
+        if (data5m.isEmpty() || data15m.isEmpty() || data1h.isEmpty()) {
+            return new DecisionReason(Decision.HOLD, "No clear signal");
+        }
         // Initialize indicators for 5m data
         MACDIndicator macd5m = new MACDIndicator(12, 26, 9);
         RSIIndicator rsi5m = new RSIIndicator(14);
@@ -36,16 +39,20 @@ public class EnhancedStrategy extends Strategy {
 
         // Calculate indicators for 5m data
         MACDIndicator.Result macdValue = calcOrFromCache(macd5m, data5m, Timeframe.M5);
-        double rsi5mValue = calcOrFromCache(rsi5m, data5m, Timeframe.M5);
-        double superTrendSignal = calcOrFromCache(superTrend5m, data5m, Timeframe.M5);
-        double atrValue = calcOrFromCache(atr5m, data5m, Timeframe.M5);
+        Double rsi5mValue = calcOrFromCache(rsi5m, data5m, Timeframe.M5);
+        Double superTrendSignal = calcOrFromCache(superTrend5m, data5m, Timeframe.M5);
+        Double atrValue = calcOrFromCache(atr5m, data5m, Timeframe.M5);
 
         // Calculate indicators for 15m data
-        double shortMaValue15m = calcOrFromCache(shortMa15m, data15m, Timeframe.M15);
-        double longMaValue15m = calcOrFromCache(longMa15m, data15m, Timeframe.M15);
+        Double shortMaValue15m = calcOrFromCache(shortMa15m, data15m, Timeframe.M15);
+        Double longMaValue15m = calcOrFromCache(longMa15m, data15m, Timeframe.M15);
 
         // Calculate indicators for 1h data
-        double rsi1hValue = calcOrFromCache(rsi1h, data1h, Timeframe.H1);
+        Double rsi1hValue = calcOrFromCache(rsi1h, data1h, Timeframe.H1);
+
+        if (macdValue == null || rsi5mValue == null || superTrendSignal == null || atrValue == null || shortMaValue15m == null || longMaValue15m == null || rsi1hValue == null) {
+            return new DecisionReason(Decision.HOLD, "No clear signal");
+        }
 
         // Retrieve the latest data
         StatData latestData = historicalData.get(historicalData.size() - 1);

@@ -9,6 +9,8 @@ import java.util.List;
 
 public class Trader {
 
+    private double sumLoss;
+    private double sumProfit;
     @Getter
     private double balance;
     private double maximumLoss; // Stop-loss as a percentage
@@ -115,6 +117,11 @@ public class Trader {
         dealExecutor.closeDeal(currentDeal, dealData.getPrice());
 
         balance += profitLoss;
+        if (profitLoss > 0) {
+            sumProfit += profitLoss;
+        } else {
+            sumLoss += profitLoss;
+        }
         long openDuration = (dealData.getWhen() - currentDeal.getOpenedData().getWhen()) / 1000L / 60L;  // Duration in minutes
         String durationMessage = String.format("Open duration: %d min", openDuration);
 
@@ -128,7 +135,7 @@ public class Trader {
 
     public double calculateWinRate() {
         if (closedDeals.isEmpty()) {
-            System.out.println("No closed deals available to calculate win rate.");
+            System.out.printf("[DEAL] Positive. No closed deals available to calculate win rate. final amount: " + balance);
             return 0.0;
         }
 
@@ -136,7 +143,7 @@ public class Trader {
         long losses = closedDeals.size() - wins;
 
         double winPercentage = (double) wins / closedDeals.size() * 100;
-        System.out.printf("[DEAL] Positive P/L deals: %d, Negative P/L deals: %d, winPercentage " + winPercentage, wins, losses);
+        System.out.printf("[DEAL] Positive P/L deals: %d, Negative P/L deals: %d, winPercentage " + winPercentage + " final amount: " + balance + " sumloss " + sumLoss + " sum profit " + sumProfit, wins, losses);
         return winPercentage;
     }
 }

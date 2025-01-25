@@ -21,6 +21,10 @@ public class EnhancedStrategy1 extends Strategy {
         List<? extends StatData> data15m = getData(historicalData, Timeframe.M15);; // 15-minute data
         List<? extends StatData> data1h = getData(historicalData, Timeframe.H1); // 1-hour data
 
+        if (data5m.isEmpty() || data15m.isEmpty() || data1h.isEmpty()) {
+            return new DecisionReason(Decision.HOLD, "No clear signal");
+        }
+
         // Initialize indicators for 5m data
         MACDIndicator macd5m = new MACDIndicator(12, 26, 9);
         RSIIndicator rsi5m = new RSIIndicator(14);
@@ -33,14 +37,17 @@ public class EnhancedStrategy1 extends Strategy {
 
         // Calculate indicators on 5m data
         MACDIndicator.Result macdValue = calcOrFromCache(macd5m, data5m, Timeframe.M5);
-        double rsiValue = calcOrFromCache(rsi5m, data5m, Timeframe.M5);
-        double superTrendSignal = calcOrFromCache(superTrend5m, data5m, Timeframe.M5);
-        double atrValue = calcOrFromCache(atr5m, data5m, Timeframe.M5);
+        Double rsiValue = calcOrFromCache(rsi5m, data5m, Timeframe.M5);
+        Double superTrendSignal = calcOrFromCache(superTrend5m, data5m, Timeframe.M5);
+        Double atrValue = calcOrFromCache(atr5m, data5m, Timeframe.M5);
 
         // Calculate indicators on 15m data
-        double shortMaValue = calcOrFromCache(shortMa15m, data15m, Timeframe.M15);
-        double longMaValue = calcOrFromCache(longMa15m, data15m, Timeframe.M15);
+        Double shortMaValue = calcOrFromCache(shortMa15m, data15m, Timeframe.M15);
+        Double longMaValue = calcOrFromCache(longMa15m, data15m, Timeframe.M15);
 
+        if (macdValue == null || rsiValue == null || superTrendSignal == null || atrValue == null || shortMaValue == null || longMaValue == null) {
+            return new DecisionReason(Decision.HOLD, "No clear signal");
+        }
         // Retrieve the latest data
         StatData latestData = historicalData.get(historicalData.size() - 1);
         double latestPrice = latestData.getClosePrice();

@@ -5,36 +5,78 @@ import com.github.istin.tradingaizer.indicator.Timeframe;
 import com.github.istin.tradingaizer.indicator.TimeframeAggregator;
 import com.github.istin.tradingaizer.trader.StatData;
 
+import java.io.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ChartDataProvider {
 
+    private static final String CACHE_FOLDER = "indicatorsCache";
+    private final String cacheId;
     private final List<? extends StatData> data1m;
     private final List<StatData> data1h;
     private final List<StatData> data15m;
     private final List<StatData> data5m;
-    private final Map<String, Map<Timeframe, List<?>>> indicatorCache = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, List<?>>> indicatorCache = new ConcurrentHashMap<>();
 
-    public ChartDataProvider(List<? extends StatData> statData1MinuttimeFrame) {
-        this.data1m = statData1MinuttimeFrame;
+    public ChartDataProvider(String cacheId, List<? extends StatData> statData1MinutTimeframe) {
+        this.cacheId = cacheId;
+        this.data1m = statData1MinutTimeframe;
         this.data5m = TimeframeAggregator.convertToTimeframe(this.data1m, Timeframe.M5);
         this.data15m = TimeframeAggregator.convertToTimeframe(this.data1m, Timeframe.M15);
         this.data1h = TimeframeAggregator.convertToTimeframe(this.data1m, Timeframe.H1);
+
+        restoreCache();
+    }
+
+    private void restoreCache() {
+        File cacheFile = new File(CACHE_FOLDER, cacheId + ".ser");
+        if (cacheFile.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(cacheFile))) {
+                Map<String, Map<String, List<?>>> restoredCache = (Map<String, Map<String, List<?>>>) ois.readObject();
+                indicatorCache.putAll(restoredCache);
+            } catch (IOException | ClassNotFoundException e) {
+                System.err.println("Failed to restore cache: " + e.getMessage());
+            }
+        }
+    }
+
+    private void saveCache() {
+        File cacheDir = new File(CACHE_FOLDER);
+        if (!cacheDir.exists()) {
+            cacheDir.mkdirs();
+        }
+        File cacheFile = new File(cacheDir, cacheId + ".ser");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(cacheFile))) {
+            oos.writeObject(indicatorCache);
+        } catch (IOException e) {
+            System.err.println("Failed to save cache: " + e.getMessage());
+        }
     }
 
     public List<? extends StatData> getData(List<? extends StatData> historicalData, Timeframe timeframe) {
+        int size = historicalData.size();
         switch (timeframe) {
             case M1:
-                return data1m;
+                return data1m.subList(0, size - 1);
             case M5:
-                return data5m;
+                if (size < 5) {
+                    return Collections.emptyList();
+                }
+                return data5m.subList(0, size /5 - 1);
             case M15:
-                return data15m;
+                if (size < 15) {
+                    return Collections.emptyList();
+                }
+                return data15m.subList(0, size /15 - 1);
             case H1:
-                return data1h;
+                if (size < 60) {
+                    return Collections.emptyList();
+                }
+                return data1h.subList(0, size /60 - 1);
             default:
                 throw new IllegalStateException("Unexpected value: " + timeframe);
         }
@@ -45,13 +87,19 @@ public class ChartDataProvider {
 
         // Ensure thread-safe access to cache for the given indicator
         indicatorCache.putIfAbsent(indicatorKey, new ConcurrentHashMap<>());
-        Map<Timeframe, List<?>> timeframeCache = indicatorCache.get(indicatorKey);
+        Map<String, List<?>> timeframeCache = indicatorCache.get(indicatorKey);
 
         // Check if the values are already cached for this timeframe
-        if (timeframeCache.containsKey(timeframe)) {
-            return ((List<Result>) timeframeCache.get(timeframe)).get(historicalData.size() - 1);
+        String name = timeframe.name();
+        if (timeframeCache.containsKey(name)) {
+            List<?> cachedResults = timeframeCache.get(name);
+            if (cachedResults.size() >= historicalData.size()) {
+                // Use the cached result directly if available
+                return (Result) cachedResults.get(historicalData.size() - 1);
+            }
         }
 
+        // Perform calculation if no cache is available
         List<? extends StatData> data;
         switch (timeframe) {
             case M1:
@@ -69,6 +117,7 @@ public class ChartDataProvider {
             default:
                 throw new IllegalStateException("Unexpected value: " + timeframe);
         }
+
         List<StatData> timeline = new ArrayList<>();
         List<Result> indicators = new ArrayList<>();
         for (StatData statData : data) {
@@ -80,9 +129,13 @@ public class ChartDataProvider {
                 e.printStackTrace();
                 indicators.add(null);
             }
-
         }
-        timeframeCache.put(timeframe, indicators);
+
+        // Update cache
+        timeframeCache.put(name, indicators);
+        saveCache();
+
+        // Return the last calculated result
         return indicators.get(historicalData.size() - 1);
     }
 }

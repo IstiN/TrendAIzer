@@ -3,6 +3,7 @@ package com.github.istin.tradingaizer.indicator;
 import com.github.istin.tradingaizer.trader.StatData;
 import lombok.Data;
 
+import java.io.Serializable;
 import java.util.List;
 
 public class BollingerBandsIndicator extends Indicator<BollingerBandsIndicator.Result> {
@@ -10,7 +11,8 @@ public class BollingerBandsIndicator extends Indicator<BollingerBandsIndicator.R
     private double multiplier;
 
     @Data
-    public static class Result {
+    public static class Result implements Serializable {
+        private static final long serialVersionUID = 1L;
         private double upperBand;
         private double lowerBand;
     }

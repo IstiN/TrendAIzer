@@ -25,18 +25,26 @@ public class ChartBasedStrategy extends Strategy {
 
         // Calculate indicator values
         MACDIndicator.Result macdResult = calcOrFromCache(macdIndicator, historicalData, Timeframe.M1);
-        double rsi = calcOrFromCache(rsiIndicator, historicalData, Timeframe.M1);
-        double superTrendSignal = calcOrFromCache(superTrendIndicator, historicalData, Timeframe.M1);
-        double atr = calcOrFromCache(atrIndicator, historicalData, Timeframe.M1);
-        double ma = calcOrFromCache(maIndicator, historicalData, Timeframe.M1);
+        Double rsi = calcOrFromCache(rsiIndicator, historicalData, Timeframe.M1);
+        Double superTrendSignal = calcOrFromCache(superTrendIndicator, historicalData, Timeframe.M1);
+        Double atr = calcOrFromCache(atrIndicator, historicalData, Timeframe.M1);
+        Double ma = calcOrFromCache(maIndicator, historicalData, Timeframe.M1);
+
+        if (rsi == null || superTrendSignal == null || atr == null || ma == null) {
+            return new DecisionReason(Decision.HOLD, "No strong signals");
+        }
 
         // Retrieve the latest data
         StatData latestData = historicalData.get(historicalData.size() - 1);
         double latestPrice = latestData.getClosePrice();
 
         // Ensure the price is trending above/below the moving average for better entries
-        boolean isUptrend = latestPrice > ma && ma > calcOrFromCache(maIndicator, historicalData.subList(0, historicalData.size() - 1), Timeframe.M1);
-        boolean isDowntrend = latestPrice < ma && ma < calcOrFromCache(maIndicator, historicalData.subList(0, historicalData.size() - 1), Timeframe.M1);
+        Double maIndicatorValue = calcOrFromCache(maIndicator, historicalData.subList(0, historicalData.size() - 1), Timeframe.M1);
+        if (maIndicatorValue == null) {
+            return new DecisionReason(Decision.HOLD, "No strong signals");
+        }
+        boolean isUptrend = latestPrice > ma && ma > maIndicatorValue;
+        boolean isDowntrend = latestPrice < ma && ma < maIndicatorValue;
 
         // Decision logic with ATR-based stop-loss
         if (superTrendSignal > 0 && macdResult.getMacd() > 0 && rsi < 55 && isUptrend) {
