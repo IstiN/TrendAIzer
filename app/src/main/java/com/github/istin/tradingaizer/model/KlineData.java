@@ -1,12 +1,14 @@
 package com.github.istin.tradingaizer.model;
 
+import com.github.istin.tradingaizer.trader.DealData;
+import com.github.istin.tradingaizer.trader.StatData;
 import lombok.Data;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Data
-public class KlineData {
+public class KlineData implements DealData, StatData {
     private long openTime;
     private double openPrice;
     private double highPrice;
@@ -18,5 +20,20 @@ public class KlineData {
     public String getOpenTimeFormatted() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         return sdf.format(new Date(openTime));
+    }
+
+    @Override
+    public long getWhen() {
+        return closeTime;
+    }
+
+    @Override
+    public double getPrice() {
+        return closePrice;
+    }
+
+    @Override
+    public double getVolume() {
+        return volume;
     }
 }

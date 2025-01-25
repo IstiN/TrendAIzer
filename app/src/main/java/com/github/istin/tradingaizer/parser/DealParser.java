@@ -12,7 +12,7 @@ import java.util.ArrayList;
 import java.util.List;
 public class DealParser {
 
-    public List<Deal> parseDealsFromResource(String resourcePath) {
+    public List<Deal> parseDealsFromResource(String ticker, String resourcePath) {
         List<Deal> deals = new ArrayList<>();
 
         try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
@@ -77,7 +77,7 @@ public class DealParser {
                     ;
 
                     // Create Deal object
-                    Deal deal = new Deal(openedKlineData, closedKlineData, direction, stopLoss, openAmount, closedAmount, message);
+                    Deal deal = new Deal(ticker, openedKlineData, closedKlineData, direction, stopLoss, openAmount, closedAmount, message);
                     deals.add(deal);
                 } catch (Exception e) {
                     System.err.println("Error parsing line: " + line);

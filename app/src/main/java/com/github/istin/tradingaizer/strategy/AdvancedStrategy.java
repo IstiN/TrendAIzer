@@ -1,29 +1,34 @@
 package com.github.istin.tradingaizer.strategy;
 
-import com.github.istin.tradingaizer.indicator.*;
+import com.github.istin.tradingaizer.chart.ChartDataProvider;
+import com.github.istin.tradingaizer.indicator.MACDIndicator;
+import com.github.istin.tradingaizer.indicator.RSIIndicator;
+import com.github.istin.tradingaizer.indicator.SuperTrendIndicator;
+import com.github.istin.tradingaizer.indicator.Timeframe;
 import com.github.istin.tradingaizer.model.Decision;
-import com.github.istin.tradingaizer.model.KlineData;
+import com.github.istin.tradingaizer.model.DecisionReason;
+import com.github.istin.tradingaizer.trader.StatData;
 
 import java.util.List;
 
 public class AdvancedStrategy extends Strategy {
 
-    public AdvancedStrategy(String cacheId) {
-        super(cacheId);
+    public AdvancedStrategy(String cacheId, ChartDataProvider chartDataProvider) {
+        super(cacheId, chartDataProvider);
     }
 
     @Override
-    public Decision generateDecision(List<KlineData> historicalData) {
-        double rsi = calcOrFromCache(new RSIIndicator(14), historicalData);
-        double macd = calcOrFromCache(new MACDIndicator(12, 26, 9), historicalData);
-        double superTrendSignal = calcOrFromCache(new SuperTrendIndicator(10, 3.0), historicalData);
+    public DecisionReason generateDecision(List<? extends StatData> historicalData) {
+        double rsi = calcOrFromCache(new RSIIndicator(14), historicalData, Timeframe.M1);
+        MACDIndicator.Result macdResult = calcOrFromCache(new MACDIndicator(12, 26, 9), historicalData, Timeframe.M1);
+        double superTrendSignal = calcOrFromCache(new SuperTrendIndicator(10, 3.0), historicalData, Timeframe.M1);
 
-        if (superTrendSignal > 0 && rsi < 40 && macd > 0) {
-            return Decision.LONG;
-        } else if (superTrendSignal < 0 && rsi > 60 && macd < 0) {
-            return Decision.SHORT;
+        if (superTrendSignal > 0 && rsi < 40 && macdResult.getMacd() > 0) {
+            return new DecisionReason(Decision.LONG, "SuperTrend is bullish, RSI is below 40, and MACD is bullish");
+        } else if (superTrendSignal < 0 && rsi > 60 && macdResult.getMacd() < 0) {
+            return new DecisionReason(Decision.SHORT, "SuperTrend is bearish, RSI is above 60, and MACD is bearish");
         } else {
-            return Decision.HOLD;
+            return new DecisionReason(Decision.HOLD, "No clear signal");
         }
     }
 }

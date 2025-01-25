@@ -1,10 +1,10 @@
 package com.github.istin.tradingaizer.indicator;
 
-import com.github.istin.tradingaizer.model.KlineData;
+import com.github.istin.tradingaizer.trader.StatData;
 
 import java.util.List;
 
-public class MovingAverageIndicator extends Indicator {
+public class MovingAverageIndicator extends Indicator<Double> {
     private int period;
 
     public MovingAverageIndicator(int period) {
@@ -12,16 +12,23 @@ public class MovingAverageIndicator extends Indicator {
     }
 
     @Override
-    public double calculate(List<KlineData> historicalData) {
-        if (historicalData.size() < period) {
-            throw new IllegalArgumentException("Not enough data to calculate Moving Average");
+    public Double calculate(List<StatData> historicalData) {
+        int size = historicalData.size();
+        if (size < period) {
+            System.out.println("Not enough data to calculate Moving Average");
+            return null;
         }
 
         double sum = 0.0;
-        for (int i = historicalData.size() - period; i < historicalData.size(); i++) {
+        for (int i = size - period; i < size; i++) {
             sum += historicalData.get(i).getClosePrice();
         }
 
         return sum / period;
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass() + " " + period;
     }
 }

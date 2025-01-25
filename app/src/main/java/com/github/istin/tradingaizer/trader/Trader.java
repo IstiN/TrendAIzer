@@ -1,7 +1,7 @@
 package com.github.istin.tradingaizer.trader;
 
 import com.github.istin.tradingaizer.model.Decision;
-import com.github.istin.tradingaizer.model.KlineData;
+import com.github.istin.tradingaizer.model.DecisionReason;
 import lombok.Getter;
 
 import java.util.ArrayList;
@@ -15,54 +15,70 @@ public class Trader {
     private double minimumProfit; // Take-profit as a percentage
     private double riskPercentage; // Percentage of balance to risk per trade
 
-    public Trader(double balance, double maximumLoss, double minimumProfit, double riskPercentage) {
-        this.balance = balance;
-        this.maximumLoss = maximumLoss;
-        this.minimumProfit = minimumProfit;
-        this.riskPercentage = riskPercentage;
-    }
+    private final DealExecutor dealExecutor; // Interface instance
 
     @Getter
     private List<Deal> closedDeals = new ArrayList<>();
 
     private Deal currentDeal;
 
-    public void decisionTrigger(Decision decision, KlineData klineData) {
+    public Trader(double balance, double maximumLoss, double minimumProfit, double riskPercentage, DealExecutor dealExecutor) {
+        this.balance = balance;
+        this.maximumLoss = maximumLoss;
+        this.minimumProfit = minimumProfit;
+        this.riskPercentage = riskPercentage;
+        this.dealExecutor = dealExecutor;
+
+        // Retrieve the current deal from the deal executor
+        this.currentDeal = dealExecutor.getCurrentDeal();
+        if (this.currentDeal != null) {
+            System.out.printf("Existing deal loaded: %s at %.2f with trade size %.2f. Stop loss: %.2f%n",
+                    currentDeal.getDirection(), currentDeal.getOpenedData().getPrice(),
+                    currentDeal.getOpenAmount(), currentDeal.getStopLoss());
+        }
+    }
+
+    public void decisionTrigger(String ticker, DecisionReason decisionReason, DealData dealData) {
+        Decision decision = decisionReason.getDecision();
         if (currentDeal == null) {
             if (decision == Decision.LONG || decision == Decision.SHORT) {
                 double tradeSize = balance * riskPercentage;
-                currentDeal = new Deal(maximumLoss, klineData, decision == Decision.LONG ? Direction.LONG : Direction.SHORT, tradeSize);
-                System.out.printf("New deal opened: %s at %.2f with trade size %.2f. Stop loss: %.2f%n",
-                        currentDeal.getDirection(), klineData.getOpenPrice(), tradeSize, currentDeal.getStopLoss());
+                currentDeal = new Deal(ticker, maximumLoss, dealData, decision == Decision.LONG ? Direction.LONG : Direction.SHORT, tradeSize);
+
+                // Submit the deal using the interface
+                dealExecutor.submitDeal(currentDeal);
+
+                System.out.printf("[DEAL] New deal opened: %s at %.2f with trade size %.2f. Stop loss: %.2f Reason: %s%n",
+                        currentDeal.getDirection(), dealData.getPrice(), tradeSize, currentDeal.getStopLoss(), decisionReason.getReason());
             }
         } else {
-            double profitLoss = calculateProfitLoss(klineData.getClosePrice());
+            double profitLoss = calculateProfitLoss(dealData.getPrice());
             double profitLossPercentage = profitLoss / balance;
 
-            if (isStopLossTriggered(klineData.getClosePrice())) {
-                closeDeal(klineData, "Stop loss triggered");
+            if (isStopLossTriggered(dealData.getPrice())) {
+                closeDeal(dealData, "Stop loss triggered");
             } else if (profitLossPercentage >= minimumProfit) {
-                closeDeal(klineData, "Minimum profit reached");
+                closeDeal(dealData, "Minimum profit reached");
             } else if (decision == Decision.CLOSE) {
-                closeDeal(klineData, "Close decision received");
+                closeDeal(dealData, "Close decision received: " + decisionReason.getReason());
             } else if ((currentDeal.getDirection() == Direction.LONG && decision == Decision.SHORT) ||
                     (currentDeal.getDirection() == Direction.SHORT && decision == Decision.LONG)) {
-                closeDeal(klineData, "Opposite decision received");
-                decisionTrigger(decision, klineData);
+                closeDeal(dealData, "Opposite decision received: "  + decisionReason.getReason());
+                decisionTrigger(ticker, decisionReason, dealData);
             } else {
-                updateStopLoss(klineData.getClosePrice());
-                System.out.printf("Deal hold: %s %.2f, profit/loss: %.2f (%.2f%%), current price: %.2f, stop loss: %.2f%n",
-                        currentDeal.getDirection(), currentDeal.getOpenedKlineData().getOpenPrice(),
-                        profitLoss, profitLossPercentage * 100, klineData.getClosePrice(), currentDeal.getStopLoss());
+                updateStopLoss(dealData.getPrice());
+                System.out.printf("hold: %s %.2f, profit/loss: %.2f (%.2f%%), current price: %.2f, stop loss: %.2f%n",
+                        currentDeal.getDirection(), currentDeal.getOpenedData().getPrice(),
+                        profitLoss, profitLossPercentage * 100, dealData.getPrice(), currentDeal.getStopLoss());
             }
         }
     }
 
     private double calculateProfitLoss(double currentPrice) {
         if (currentDeal.getDirection() == Direction.LONG) {
-            return currentDeal.getOpenAmount() * (currentPrice - currentDeal.getOpenedKlineData().getOpenPrice()) / currentDeal.getOpenedKlineData().getOpenPrice();
+            return currentDeal.getOpenAmount() * (currentPrice - currentDeal.getOpenedData().getPrice()) / currentDeal.getOpenedData().getPrice();
         } else {
-            return currentDeal.getOpenAmount() * (currentDeal.getOpenedKlineData().getOpenPrice() - currentPrice) / currentDeal.getOpenedKlineData().getOpenPrice();
+            return currentDeal.getOpenAmount() * (currentDeal.getOpenedData().getPrice() - currentPrice) / currentDeal.getOpenedData().getPrice();
         }
     }
 
@@ -82,25 +98,45 @@ public class Trader {
                 newStopLoss = currentPrice * (1 + maximumLoss / 2); // Tighten stop-loss in profit
                 currentDeal.setStopLoss(Math.min(currentDeal.getStopLoss(), newStopLoss));
             }
+
+            // Update the stop loss through the deal executor
+            dealExecutor.updateStopLoss(currentDeal, currentDeal.getStopLoss());
+
             System.out.printf("Stop loss updated to %.2f%n", currentDeal.getStopLoss());
         }
     }
 
-    // Update the closeDeal method
-    private void closeDeal(KlineData klineData, String reason) {
-        double profitLoss = calculateProfitLoss(klineData.getClosePrice());
+    private void closeDeal(DealData dealData, String reason) {
+        double profitLoss = calculateProfitLoss(dealData.getPrice());
         currentDeal.setClosedAmount(currentDeal.getOpenAmount() + profitLoss);
-        currentDeal.setClosedKlineData(klineData);
+        currentDeal.setCloseData(dealData);
+
+        // Use the deal executor to handle the closing logic
+        dealExecutor.closeDeal(currentDeal, dealData.getPrice());
 
         balance += profitLoss;
-        long openDuration = (klineData.getCloseTime() - currentDeal.getOpenedKlineData().getCloseTime()) / 1000l / 60l;  // Duration in milliseconds
+        long openDuration = (dealData.getWhen() - currentDeal.getOpenedData().getWhen()) / 1000L / 60L;  // Duration in minutes
         String durationMessage = String.format("Open duration: %d min", openDuration);
 
-        currentDeal.setMessage(String.format("Deal closed. Reason: %s. PL: %.2f. New balance: %.2f. %s",
+        currentDeal.setMessage(String.format("[DEAL] Deal closed. Reason: %s. PL: %.2f. New balance: %.2f. %s",
                 reason, profitLoss, balance, durationMessage));
         System.out.println(currentDeal.getMessage());
 
         closedDeals.add(currentDeal);
         currentDeal = null;
+    }
+
+    public double calculateWinRate() {
+        if (closedDeals.isEmpty()) {
+            System.out.println("No closed deals available to calculate win rate.");
+            return 0.0;
+        }
+
+        long wins = closedDeals.stream().filter(deal -> deal.getClosedAmount() > deal.getOpenAmount()).count();
+        long losses = closedDeals.size() - wins;
+
+        double winPercentage = (double) wins / closedDeals.size() * 100;
+        System.out.printf("[DEAL] Positive P/L deals: %d, Negative P/L deals: %d, winPercentage " + winPercentage, wins, losses);
+        return winPercentage;
     }
 }

@@ -13,6 +13,8 @@ repositories {
 dependencies {
     // Binance API SDK
     implementation 'io.github.binance:binance-connector-java:3.4.1'
+    implementation 'io.github.binance:binance-futures-connector-java:3.0.5' // Use the latest version
+
 
     // Logging
     implementation 'org.slf4j:slf4j-api:2.0.9'

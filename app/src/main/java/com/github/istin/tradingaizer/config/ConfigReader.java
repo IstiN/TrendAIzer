@@ -1,6 +1,6 @@
 package com.github.istin.tradingaizer.config;
 
-import com.github.istin.tradingaizer.App;
+import com.github.istin.tradingaizer.ReportBuildingApp;
 import lombok.Getter;
 
 import java.io.InputStream;
@@ -11,10 +11,14 @@ public class ConfigReader {
     @Getter
     private Config config;
 
+    public ConfigReader() {
+        loadConfig();
+    }
+
     public void loadConfig() {
         Properties properties = new Properties();
 
-        try (InputStream input = App.class.getClassLoader().getResourceAsStream("config.properties")) {
+        try (InputStream input = ReportBuildingApp.class.getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {
                 System.out.println("Sorry, unable to find config.properties");
                 return;

@@ -9,15 +9,14 @@ import com.github.istin.tradingaizer.trader.Deal;
 import com.github.istin.tradingaizer.utils.BinanceDataUtils;
 
 import java.util.List;
-import java.util.function.Predicate;
 
-public class App {
+public class ReportBuildingApp {
 
     public static void main(String[] args) {
-        List<Deal> deals = new DealParser().parseDealsFromResource("learning/deals.csv");
+        List<Deal> deals = new DealParser().parseDealsFromResource("BTCUSDT", "learning/deals.csv");
         long endTime = 1737621533553L;
         final long threeMonthsAgo = endTime - (1L * 30 * 24 * 60 * 60 * 1000);
         BinanceDataUtils.Result result = BinanceDataUtils.readBtcHistoricalData();
-        ReportUtils.generateReport("macrosmatic_trading_chart.html", deals.stream().filter(deal -> deal.getOpenedKlineData().getOpenTime() > threeMonthsAgo).toList(), result.historicalData());
+        ReportUtils.generateReport("macrosmatic_trading_chart.html", deals.stream().filter(deal -> deal.getOpenedData().getWhen() > threeMonthsAgo).toList(), result.historicalData());
     }
 }

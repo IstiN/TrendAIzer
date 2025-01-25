@@ -1,10 +1,10 @@
 package com.github.istin.tradingaizer.indicator;
 
-import com.github.istin.tradingaizer.model.KlineData;
+import com.github.istin.tradingaizer.trader.StatData;
 
 import java.util.List;
 
-public class RSIIndicator extends Indicator {
+public class RSIIndicator extends Indicator<Double> {
     private int period;
 
     public RSIIndicator(int period) {
@@ -12,15 +12,19 @@ public class RSIIndicator extends Indicator {
     }
 
     @Override
-    public double calculate(List<KlineData> historicalData) {
+    public Double calculate(List<StatData> historicalData) {
         if (historicalData.size() < period + 1) {
-            throw new IllegalArgumentException("Not enough data to calculate RSI");
+            System.out.println("Not enough data to calculate RSI");
+            return null;
         }
 
         double gain = 0, loss = 0;
 
+        // Calculate initial gains and losses
         for (int i = 1; i <= period; i++) {
-            double change = historicalData.get(i).getClosePrice() - historicalData.get(i - 1).getClosePrice();
+            StatData prevData = historicalData.get(i - 1);
+            StatData currentData = historicalData.get(i);
+            double change = currentData.getClosePrice() - prevData.getClosePrice();
             if (change > 0) {
                 gain += change;
             } else {
@@ -31,8 +35,11 @@ public class RSIIndicator extends Indicator {
         double avgGain = gain / period;
         double avgLoss = loss / period;
 
+        // Calculate smoothed average gain and loss
         for (int i = period + 1; i < historicalData.size(); i++) {
-            double change = historicalData.get(i).getClosePrice() - historicalData.get(i - 1).getClosePrice();
+            StatData prevData = historicalData.get(i - 1);
+            StatData currentData = historicalData.get(i);
+            double change = currentData.getClosePrice() - prevData.getClosePrice();
             if (change > 0) {
                 avgGain = ((avgGain * (period - 1)) + change) / period;
                 avgLoss = (avgLoss * (period - 1)) / period;
@@ -42,8 +49,13 @@ public class RSIIndicator extends Indicator {
             }
         }
 
-        if (avgLoss == 0) return 100; // Prevent division by zero
+        if (avgLoss == 0) return 100d; // Prevent division by zero
         double rs = avgGain / avgLoss;
         return 100 - (100 / (1 + rs));
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass() + " " + period;
     }
 }

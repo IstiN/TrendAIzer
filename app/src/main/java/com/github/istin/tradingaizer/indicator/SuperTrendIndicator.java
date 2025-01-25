@@ -1,11 +1,11 @@
 package com.github.istin.tradingaizer.indicator;
 
-import com.github.istin.tradingaizer.model.KlineData;
+import com.github.istin.tradingaizer.trader.StatData;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class SuperTrendIndicator extends Indicator {
+public class SuperTrendIndicator extends Indicator<Double> {
     private int atrPeriod;
     private double multiplier;
 
@@ -15,15 +15,16 @@ public class SuperTrendIndicator extends Indicator {
     }
 
     @Override
-    public double calculate(List<KlineData> historicalData) {
+    public Double calculate(List<StatData> historicalData) {
         if (historicalData.size() < atrPeriod + 1) {
-            throw new IllegalArgumentException("Not enough data to calculate SuperTrend.");
+            System.out.println("Not enough data to calculate SuperTrend.");
+            return null;
         }
 
         List<Double> high = new ArrayList<>();
         List<Double> low = new ArrayList<>();
         List<Double> close = new ArrayList<>();
-        for (KlineData data : historicalData) {
+        for (StatData data : historicalData) {
             high.add(data.getHighPrice());
             low.add(data.getLowPrice());
             close.add(data.getClosePrice());
@@ -43,7 +44,7 @@ public class SuperTrendIndicator extends Indicator {
         }
 
         // Simplified SuperTrend calculation for decision-making
-        return historicalData.get(historicalData.size() - 1).getClosePrice() > lowerBand.get(lowerBand.size() - 1) ? 1 : -1;
+        return historicalData.get(historicalData.size() - 1).getClosePrice() > lowerBand.get(lowerBand.size() - 1) ? 1d : -1d;
     }
 
     private List<Double> calculateATR(List<Double> high, List<Double> low, List<Double> close, int period) {
@@ -70,5 +71,10 @@ public class SuperTrendIndicator extends Indicator {
         }
 
         return atrSmoothed;
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass() + " " + atrPeriod + " " + multiplier;
     }
 }

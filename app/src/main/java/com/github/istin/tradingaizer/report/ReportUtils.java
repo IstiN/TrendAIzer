@@ -1,6 +1,6 @@
 package com.github.istin.tradingaizer.report;
 
-import com.github.istin.tradingaizer.BinanceTradingAlgo;
+import com.github.istin.tradingaizer.StrategyTestingApp;
 import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.trader.Deal;
 import freemarker.template.Configuration;
@@ -21,20 +21,20 @@ public class ReportUtils {
         for (Deal deal : closedDeals) {
             Map<String, Object> decisionData = new HashMap<>();
             decisionData.put("action", deal.getDirection());
-            decisionData.put("data", deal.getOpenedKlineData());
+            decisionData.put("data", deal.getOpenedData());
             decisionData.put("message", "open");
             decisions.add(decisionData);
 
             Map<String, Object> closedDesitionData = new HashMap<>();
             closedDesitionData.put("action", "CLOSE");
-            closedDesitionData.put("data", deal.getClosedKlineData());
+            closedDesitionData.put("data", deal.getCloseData());
             closedDesitionData.put("message", deal.getMessage() == null ? "Still open" : deal.getMessage());
             decisions.add(closedDesitionData);
         }
 
         // Create FreeMarker Configuration instance
         Configuration cfg = new Configuration(Configuration.VERSION_2_3_30);
-        cfg.setClassForTemplateLoading(BinanceTradingAlgo.class, "/");
+        cfg.setClassForTemplateLoading(StrategyTestingApp.class, "/");
         cfg.setDefaultEncoding("UTF-8");
 
         try {
