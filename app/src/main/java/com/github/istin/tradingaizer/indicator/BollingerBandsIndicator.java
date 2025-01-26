@@ -6,97 +6,79 @@ import lombok.Data;
 import java.io.Serializable;
 import java.util.List;
 
+/**
+ * Bollinger Bands indicator calculates the Upper, Middle, and Lower bands
+ * for a given period and standard deviation multiplier.
+ */
 public class BollingerBandsIndicator extends Indicator<BollingerBandsIndicator.Result> {
-    private int period;
-    private double multiplier;
 
+    private final int period;
+    private final double stdDevMultiplier;
+
+    /**
+     * @param period           the number of bars used for the calculation (commonly 20)
+     * @param stdDevMultiplier the standard deviation multiplier (commonly 2.0)
+     */
+    public BollingerBandsIndicator(int period, double stdDevMultiplier) {
+        this.period = period;
+        this.stdDevMultiplier = stdDevMultiplier;
+    }
+
+    /**
+     * Container for Bollinger Bands results: upper, middle, and lower bands.
+     */
     @Data
     public static class Result implements Serializable {
         private static final long serialVersionUID = 1L;
         private double upperBand;
+        private double middleBand;  // Typically the SMA
         private double lowerBand;
     }
 
-    public BollingerBandsIndicator(int period, double multiplier) {
-        this.period = period;
-        this.multiplier = multiplier;
-    }
-
-    private Double getUpperBand(List<StatData> historicalData) {
-        Double sma = calculateSMA(historicalData);
-        if (sma == null) {
-            return null;
-        }
-        Double stdDev = calculateStandardDeviation(historicalData);
-        if (stdDev == null) {
-            return null;
-        }
-        return sma + (multiplier * stdDev);
-    }
-
-    private Double getLowerBand(List<StatData> historicalData) {
-        Double sma = calculateSMA(historicalData);
-        if (sma == null) {
-            return null;
-        }
-        Double stdDev = calculateStandardDeviation(historicalData);
-        if (stdDev == null) {
-            return null;
-        }
-        return sma - (multiplier * stdDev);
-    }
-
-    private Double calculateSMA(List<StatData> historicalData) {
-        if (historicalData.size() < period) {
-            System.out.println("Not enough data to calculate SMA for Bollinger Bands");
+    @Override
+    public Result calculate(List<StatData> historicalData) {
+        if (historicalData == null || historicalData.size() < period) {
+            System.out.println(
+                    "Not enough data to calculate Bollinger Bands. Required: " + period +
+                            ", but got: " + (historicalData == null ? 0 : historicalData.size())
+            );
             return null;
         }
 
-        double sum = 0;
+        // We'll calculate the Bollinger Bands for the most recent bar only
+        // If you need a full series, adapt accordingly.
+
+        // 1) Compute the Simple Moving Average (SMA) for the last 'period' bars
+        double sum = 0.0;
         for (int i = historicalData.size() - period; i < historicalData.size(); i++) {
             sum += historicalData.get(i).getClosePrice();
         }
-        return sum / period;
-    }
+        double sma = sum / period;
 
-    private Double calculateStandardDeviation(List<StatData> historicalData) {
-        if (historicalData.size() < period) {
-            System.out.println("Not enough data to calculate standard deviation for Bollinger Bands");
-            return null;
-        }
-
-        Double sma = calculateSMA(historicalData);
-        if (sma == null) {
-            return null;
-        }
-        double sumSquaredDifferences = 0;
-
+        // 2) Compute the standard deviation over the last 'period' bars
+        double varianceSum = 0.0;
         for (int i = historicalData.size() - period; i < historicalData.size(); i++) {
-            double price = historicalData.get(i).getClosePrice();
-            sumSquaredDifferences += Math.pow(price - sma, 2);
+            double diff = historicalData.get(i).getClosePrice() - sma;
+            varianceSum += (diff * diff);
         }
+        double variance = varianceSum / period;
+        double stdDev = Math.sqrt(variance);
 
-        return Math.sqrt(sumSquaredDifferences / period);
-    }
+        // 3) Create Bollinger Bands
+        double upperBand = sma + (stdDevMultiplier * stdDev);
+        double lowerBand = sma - (stdDevMultiplier * stdDev);
 
-    @Override
-    public BollingerBandsIndicator.Result calculate(List<StatData> historicalData) {
-        Result result = new Result();
-        Double upperBand = getUpperBand(historicalData);
-        if (upperBand == null) {
-            return null;
-        }
-        result.setUpperBand(upperBand);
-        Double lowerBand = getLowerBand(historicalData);
-        if (lowerBand == null) {
-            return null;
-        }
-        result.setLowerBand(lowerBand);
-        return result;
+        // Return only the most recent set of bands
+        Result bandsResult = new Result();
+        bandsResult.setMiddleBand(sma);
+        bandsResult.setUpperBand(upperBand);
+        bandsResult.setLowerBand(lowerBand);
+
+        return bandsResult;
     }
 
     @Override
     public String toString() {
-        return this.getClass() + " " + period + " " + multiplier;
+        return this.getClass().getSimpleName() + " (period=" + period + ", stdDevMultiplier=" + stdDevMultiplier + ")";
     }
 }

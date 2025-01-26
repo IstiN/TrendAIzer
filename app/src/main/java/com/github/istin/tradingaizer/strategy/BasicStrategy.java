@@ -27,9 +27,9 @@ public class BasicStrategy extends Strategy {
         System.out.println(macdResult.getMacd());
         System.out.println(macdResult.getSignalLine());
         if (rsi < 40 && macdResult.getMacd() > 0) {
-            return new DecisionReason(Decision.LONG, "RSI is below 40 and MACD is bullish");
+            return new DecisionReason(Decision.LONG, "RSI is below 40 and MACD is bullish " + rsi + " " + macdResult.getMacd());
         } else if (rsi > 60 && macdResult.getMacd() < 0) {
-            return new DecisionReason(Decision.SHORT, "RSI is above 60 and MACD is bearish");
+            return new DecisionReason(Decision.SHORT, "RSI is above 60 and MACD is bearish " + rsi + " " + macdResult.getMacd());
         } else {
             return new DecisionReason(Decision.HOLD, "No clear signal");
         }

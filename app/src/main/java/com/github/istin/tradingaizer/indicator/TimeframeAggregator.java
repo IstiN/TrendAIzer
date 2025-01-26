@@ -27,8 +27,12 @@ public class TimeframeAggregator {
 
             double close = group.get(group.size() - 1).getClosePrice();
 
+            double volume = group.stream()
+                    .mapToDouble(StatData::getVolume)
+                    .sum();
+
             // Create a new `StatData` implementation for the aggregated candle
-            StatData aggregatedCandle = new AggregatedStatData(high, low, close);
+            StatData aggregatedCandle = new AggregatedStatData(high, low, close, volume);
             aggregatedData.add(aggregatedCandle);
         }
 
@@ -42,11 +46,13 @@ public class TimeframeAggregator {
         private final double highPrice;
         private final double lowPrice;
         private final double closePrice;
+        private final double volume;
 
-        public AggregatedStatData(double highPrice, double lowPrice, double closePrice) {
+        public AggregatedStatData(double highPrice, double lowPrice, double closePrice, double volume) {
             this.highPrice = highPrice;
             this.lowPrice = lowPrice;
             this.closePrice = closePrice;
+            this.volume = volume;
         }
 
         @Override
@@ -62,6 +68,11 @@ public class TimeframeAggregator {
         @Override
         public double getClosePrice() {
             return closePrice;
+        }
+
+        @Override
+        public double getVolume() {
+            return volume;
         }
     }
 }

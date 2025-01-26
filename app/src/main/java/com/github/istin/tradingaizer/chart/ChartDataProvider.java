@@ -3,6 +3,7 @@ package com.github.istin.tradingaizer.chart;
 import com.github.istin.tradingaizer.indicator.Indicator;
 import com.github.istin.tradingaizer.indicator.Timeframe;
 import com.github.istin.tradingaizer.indicator.TimeframeAggregator;
+import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.trader.StatData;
 
 import java.io.*;
@@ -120,15 +121,33 @@ public class ChartDataProvider {
 
         List<StatData> timeline = new ArrayList<>();
         List<Result> indicators = new ArrayList<>();
+        int i = 0;
         for (StatData statData : data) {
             timeline.add(statData);
+
+            int lastSize = 1000;
+            List<StatData> lastItems = new ArrayList<>();
+            if (timeline.size() < lastSize) {
+                lastItems = timeline;
+            } else {
+                // 2) Sub-list for last 100 (or 1000, your choice)
+                lastItems = timeline.subList(
+                        Math.max(0, timeline.size() - lastSize),
+                        timeline.size()
+                );
+            }
+
+
+
             try {
-                Result result = indicator.calculate(timeline);
+                Result result = indicator.calculate(lastItems);
                 indicators.add(result);
+                System.out.println("Indicator: " + indicatorKey + ", Timeframe: " + name + ", Index: " + i + ", From: "+ data.size() +",  Value: " + result);
             } catch (Exception e) {
                 e.printStackTrace();
                 indicators.add(null);
             }
+            i++;
         }
 
         // Update cache

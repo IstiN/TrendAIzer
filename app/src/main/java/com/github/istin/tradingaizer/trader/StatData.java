@@ -7,4 +7,6 @@ public interface StatData {
     double getLowPrice();
 
     double getClosePrice();
+
+    double getVolume();
 }

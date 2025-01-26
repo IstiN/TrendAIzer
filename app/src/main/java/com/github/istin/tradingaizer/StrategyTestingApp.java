@@ -1,11 +1,11 @@
 package com.github.istin.tradingaizer;
 
 import com.github.istin.tradingaizer.chart.ChartDataProvider;
-import com.github.istin.tradingaizer.model.Decision;
 import com.github.istin.tradingaizer.model.DecisionReason;
 import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.report.ReportUtils;
-import com.github.istin.tradingaizer.strategy.*;
+import com.github.istin.tradingaizer.strategy.OptimizedStrategy;
+import com.github.istin.tradingaizer.strategy.Strategy;
 import com.github.istin.tradingaizer.trader.Deal;
 import com.github.istin.tradingaizer.trader.DealExecutor;
 import com.github.istin.tradingaizer.trader.StatData;
@@ -19,66 +19,121 @@ import java.util.List;
 public class StrategyTestingApp {
 
     public static void main(String[] args) {
+        // 1) Load historical data once
         BinanceDataUtils.Result result = BinanceDataUtils.readBtcHistoricalData();
-
-
-        List<Strategy> strategies = new ArrayList<>();
-        ChartDataProvider chartDataProvider = new ChartDataProvider(result.cacheId(), result.historicalData());
-//        strategies.add(new BasicStrategy(result.cacheId(), chartDataProvider));
-        strategies.add(new AdaptiveMultiTimeframeStrategy(result.cacheId(), chartDataProvider));
-        //strategies.add(new AdvancedStrategy(result.cacheId(), chartDataProvider));
-//        strategies.add(new ChartBasedStrategy(result.cacheId(), chartDataProvider));
-//        strategies.add(new EnhancedStrategy(result.cacheId(), chartDataProvider));
-//        strategies.add(new EnhancedStrategy1(result.cacheId(), chartDataProvider));
-//        strategies.add(new EnhancedStrategy2(result.cacheId(), chartDataProvider));
-        //strategies.add(new OptimizedStrategy(result.cacheId(), chartDataProvider));
-
-        //strategies.add(new EnhancedStrategyV2(result.cacheId(), chartDataProvider));
-
-        String ticker = "BTCUSDT";
-        for (Strategy strategy : strategies) {
-            List<StatData> timelineSimulation = new ArrayList<>();
-            System.out.println(strategy.getClass().getSimpleName() + " starting");
-            Trader trader = createTrader();
-            for (KlineData data : result.historicalData()) {
-                timelineSimulation.add(data);
-                DecisionReason decisionReason = strategy.generateDecision(timelineSimulation);
-                trader.decisionTrigger(ticker, decisionReason, data);
-            }
-            List<Deal> closedDeals = trader.getClosedDeals();
-            ReportUtils.generateReport("trading_chart.html", closedDeals, result.historicalData());
-            trader.calculateWinRate();
-            System.out.println(" " + strategy.getClass().getSimpleName() + " ended");
+        List<KlineData> fullHistory = result.historicalData();
+        if (fullHistory.isEmpty()) {
+            System.err.println("No data loaded!");
+            return;
         }
 
+        ChartDataProvider chartDataProvider = new ChartDataProvider(result.cacheId(), fullHistory);
 
+        // 2) Strategy to test
+        Strategy strategy = new OptimizedStrategy(result.cacheId(), chartDataProvider);
+
+        // 3) Generate parameter ranges from 0.01 to 0.30 inclusive
+        //    with step 0.01 => 0.01, 0.02, ..., 0.30
+
+        // Params => maximumLoss=0.01, minimumProfit=0.04
+        // Params => maximumLoss=0.01, minimumProfit=0.03
+
+        double step = 0.01;
+        double start = 0.1;
+        double end   = 0.5;
+        double[] maxLossRange = generateRange(0.03, 0.03, step);
+        double[] minProfitRange = generateRange(0.04, 0.04d, step);
+
+        // Tracking best result
+        double bestFinalBalance = Double.NEGATIVE_INFINITY;
+        double bestWinRate      = 0.0;
+        double bestMaxLoss      = 0.0;
+        double bestMinProfit    = 0.0;
+
+        String ticker = "BTCUSDT";
+
+        // 4) Loop over all param combos
+        for (double minProfit : minProfitRange) {
+            for (double maxLoss : maxLossRange) {
+
+                // Create trader
+                Trader trader = createTrader(maxLoss, minProfit);
+
+                // Run simulation
+                runSimulation(trader, strategy, fullHistory, ticker);
+
+                // Evaluate
+                trader.calculateWinRate();
+                double finalBalance = trader.getBalance();
+
+                // Check if best
+                if (finalBalance > bestFinalBalance) {
+                    bestFinalBalance = finalBalance;
+                    bestMaxLoss      = maxLoss;
+                    bestMinProfit    = minProfit;
+                }
+            }
+        }
+
+        // 5) Print final best result
+        System.out.println("=== OPTIMIZATION COMPLETE ===");
+        System.out.println("Best finalBalance = " + bestFinalBalance);
+        System.out.println("Best winRate      = " + bestWinRate);
+        System.out.println("Params => maximumLoss=" + bestMaxLoss +
+                ", minimumProfit=" + bestMinProfit);
+
+        // (Optional) final run with best params, produce report
+        Trader bestTrader = createTrader(bestMaxLoss, bestMinProfit);
+        runSimulation(bestTrader, strategy, fullHistory, ticker);
+        List<Deal> closedDeals = bestTrader.getClosedDeals();
+        ReportUtils.generateReport("trading_chart.html", closedDeals, fullHistory);
     }
 
+    /**
+     * Create a Trader with specific risk/reward parameters.
+     */
     @NotNull
-    private static Trader createTrader() {
-        Trader trader = new Trader(1000d, 0.03d, 0.04d, 1d, new DealExecutor() {
+    private static Trader createTrader(double maximumLoss, double minimumProfit) {
+        return new Trader(1000d, maximumLoss, minimumProfit, 1d, new DealExecutor() {
             @Override
-            public void submitDeal(Deal deal) {
-                //fake deal submition
-            }
+            public void submitDeal(Deal deal) {}
 
             @Override
-            public void closeDeal(Deal deal, double closePrice) {
-                //fake deal closing
-            }
+            public void closeDeal(Deal deal, double closePrice) {}
 
             @Override
-            public Deal getCurrentDeal() {
-                //no opened deals at beginning
-                return null;
-            }
+            public Deal getCurrentDeal() { return null; }
 
             @Override
-            public void updateStopLoss(Deal deal, double newStopLoss) {
-
-            }
+            public void updateStopLoss(Deal deal, double newStopLoss) {}
         });
-        return trader;
     }
 
+    /**
+     * Run the entire simulation with a given strategy/trader/historical data.
+     */
+    private static void runSimulation(Trader trader, Strategy strategy, List<KlineData> history, String ticker) {
+        List<StatData> timelineSimulation = new ArrayList<>();
+        for (KlineData data : history) {
+            timelineSimulation.add(data);
+            DecisionReason decisionReason = strategy.generateDecision(timelineSimulation);
+            trader.decisionTrigger(ticker, decisionReason, data);
+        }
+    }
+
+    /**
+     * Generate a range of doubles from start to end (inclusive),
+     * stepping by step. e.g. generateRange(0.01, 0.3, 0.01)
+     */
+    private static double[] generateRange(double start, double end, double step) {
+        // Count how many steps
+        int size = (int) Math.round(((end - start) / step)) + 1;
+        double[] result = new double[size];
+        double current = start;
+        for (int i = 0; i < size; i++) {
+            result[i] = Math.round(current * 100.0) / 100.0; // optional rounding
+            current += step;
+        }
+        return result;
+    }
 }
