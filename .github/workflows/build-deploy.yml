@@ -75,6 +75,12 @@ jobs:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
+      - name: Debug GCP Authentication
+        run: |
+          gcloud auth list
+          gcloud config list
+          gcloud projects list
+
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
