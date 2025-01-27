@@ -58,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: build/libs/trendaizer-${{ env.tag_name }}-all.jar
+          asset_path: app/build/libs/trendaizer-${{ env.tag_name }}-all.jar
           asset_name: trendaizer-${{ env.tag_name }}-all.jar
           asset_content_type: application/java-archive
 
@@ -82,4 +82,4 @@ jobs:
 
       - name: Deploy JAR to GCP VM
         run: |
-          gcloud compute scp build/libs/trendaizer-${{ env.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
+          gcloud compute scp app/build/libs/trendaizer-${{ env.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
