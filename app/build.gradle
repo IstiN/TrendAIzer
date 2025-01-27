@@ -1,10 +1,11 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'com.github.istin'
-version = '1.0-SNAPSHOT'
+version = "${version}"
 
 repositories {
     mavenCentral()
@@ -26,6 +27,7 @@ dependencies {
     implementation 'com.tictactec:ta-lib:0.4.0'
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation group: 'org.freemarker', name: 'freemarker', version: '2.3.30'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
 
     // Lombok for boilerplate reduction
     compileOnly 'org.projectlombok:lombok:1.18.30'
@@ -43,10 +45,47 @@ test {
     useJUnitPlatform()
 }
 
+sourceSets {
+    integrationTest {
+        java.srcDir file('src/integrationTest/java')
+        resources.srcDir file('src/integrationTest/resources')
+        compileClasspath += sourceSets.main.output + configurations.testRuntimeClasspath
+        runtimeClasspath += output + compileClasspath
+    }
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+task integrationTest(type: Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    shouldRunAfter test // ensure that integration tests run after unit tests
+}
+
+// Optional: register with check task
+check.dependsOn integrationTest
+
 application {
-    mainClass = 'com.github.istin.tradingaizer.App'
+    mainClass = 'com.github.istin.tradingaizer.StrategyTestingApp'
 }
 
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
+}
+
+shadowJar {
+    // Configure the shadow JAR task as needed
+    archiveBaseName.set('trendaizer')
+    archiveVersion.set('v'+version)
+    archiveClassifier.set('all')
+    archiveExtension.set('jar')
+    // Optionally specify main class
+    manifest {
+        attributes 'Main-Class': 'com.github.istin.tradingaizer.AlgoExecutor'
+    }
 }

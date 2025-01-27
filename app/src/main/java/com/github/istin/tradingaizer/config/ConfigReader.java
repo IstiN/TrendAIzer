@@ -30,11 +30,12 @@ public class ConfigReader {
             String apiSecret = properties.getProperty("binance.secret");
             Boolean indicatorCache = Boolean.parseBoolean(properties.getProperty("indicator.cache"));
             Boolean binanceCache = Boolean.parseBoolean(properties.getProperty("binance.cache"));
+            Boolean bybitCache = Boolean.parseBoolean(properties.getProperty("bybit.cache"));
 
             if (apiKey == null || apiSecret == null) {
                 throw new IllegalArgumentException("API key or secret not found in properties file.");
             }
-            this.config = new Config(apiKey, apiSecret, indicatorCache, binanceCache);
+            this.config = new Config(apiKey, apiSecret, indicatorCache, binanceCache, bybitCache);
 
         } catch (Exception e) {
             e.printStackTrace();

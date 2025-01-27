@@ -20,9 +20,9 @@ public class AlgoExecutor {
         BinanceDealExecutor dealExecutor = new BinanceDealExecutor(config.getApiKey(), config.getApiSecret());
         //SIZE is in target crypt
         Deal deal = new Deal("XRPUSDT", 0.01, new KlineData(), Direction.LONG, 2);
-        //dealExecutor.submitDeal(deal);
-        Deal currentDeal = dealExecutor.getCurrentDeal();
-        System.out.println(currentDeal);
+        dealExecutor.submitDeal(deal);
+        //Deal currentDeal = dealExecutor.getCurrentDeal();
+        //System.out.println(currentDeal);
         //dealExecutor.submitDeal(deal, 0);
 //        long now = System.currentTimeMillis();
 //        long monthAgo = now - ((long) 30 * 24 * 60 * 60 * 1000);

@@ -3,6 +3,7 @@ package com.github.istin.tradingaizer.provider;
 import com.binance.connector.client.impl.SpotClientImpl;
 import com.github.istin.tradingaizer.config.ConfigReader;
 import com.github.istin.tradingaizer.model.KlineData;
+import com.github.istin.tradingaizer.trader.StatDealData;
 import com.github.istin.tradingaizer.utils.CacheManager;
 import org.json.JSONArray;
 
@@ -18,13 +19,13 @@ public class BinanceDataProvider implements DataProvider {
     private final CacheManager cacheManager;
 
     public BinanceDataProvider(String apiKey, String apiSecret) {
-        this.client = new SpotClientImpl(apiKey, apiSecret);
+        this.client = new SpotClientImpl(apiKey, apiSecret, "https://api.binance.us");
         this.isBinanceCache = new ConfigReader().getConfig().getBinanceCache();
         this.cacheManager = new CacheManager("binance");
     }
 
     @Override
-    public List<KlineData> fetchHistoricalData(String symbol, String interval, long startTime, long endTime) {
+    public List<? extends StatDealData> fetchHistoricalData(String symbol, String interval, long startTime, long endTime) {
         List<KlineData> klineDataList = new ArrayList<>();
         long currentStartTime = startTime;
 

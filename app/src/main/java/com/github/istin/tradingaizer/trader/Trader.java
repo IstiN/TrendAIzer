@@ -2,11 +2,10 @@ package com.github.istin.tradingaizer.trader;
 
 import com.github.istin.tradingaizer.model.Decision;
 import com.github.istin.tradingaizer.model.DecisionReason;
+import com.github.istin.tradingaizer.utils.DateUtils;
 import lombok.Getter;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class Trader {
@@ -42,6 +41,7 @@ public class Trader {
         }
     }
 
+
     public void decisionTrigger(String ticker, DecisionReason decisionReason, DealData dealData) {
         Decision decision = decisionReason.getDecision();
 
@@ -58,7 +58,7 @@ public class Trader {
 
                 dealExecutor.submitDeal(currentDeal);
 
-                System.out.printf("[DEAL] New deal opened: %s at %.2f with trade size %.2f. Stop loss: %.2f Reason: %s%n " + convertToDateTime(dealData),
+                System.out.printf("[DEAL] New deal opened: %s at %.2f with trade size %.2f. Stop loss: %.2f Reason: %s%n " + DateUtils.convertToDateTime(dealData),
                         currentDeal.getDirection(), dealData.getPrice(), tradeSize, currentDeal.getStopLoss(), decisionReason.getReason());
             }
         } else {
@@ -82,13 +82,6 @@ public class Trader {
                         profitLoss, profitLossPercentage * 100, dealData.getPrice(), currentDeal.getStopLoss());
             }
         }
-    }
-
-    private static String convertToDateTime(DealData dealData) {
-        // Convert the timestamp to a human-readable date-time format
-        long when = dealData.getWhen();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        return sdf.format(new Date(when));
     }
 
     private double calculateDefaultStopLoss(double price, boolean isLong) {
@@ -150,7 +143,7 @@ public class Trader {
         long openDuration = (dealData.getWhen() - currentDeal.getOpenedData().getWhen()) / 1000L / 60L;  // Duration in minutes
         String durationMessage = String.format("Open duration: %d min", openDuration);
 
-        currentDeal.setMessage(String.format("[DEAL] Deal closed. Reason: %s. PL: %.2f. New balance: %.2f. %s  " + convertToDateTime(dealData),
+        currentDeal.setMessage(String.format("[DEAL] Deal closed. Reason: %s. PL: %.2f. New balance: %.2f. %s  " + DateUtils.convertToDateTime(dealData),
                 reason, profitLoss, balance, durationMessage));
         System.out.println(currentDeal.getMessage());
 

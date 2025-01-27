@@ -12,7 +12,7 @@ public class RSIIndicator extends Indicator<Double> {
     }
 
     @Override
-    public Double calculate(List<StatData> historicalData) {
+    public Double calculate(List<? extends StatData> historicalData) {
         if (historicalData.size() < period + 1) {
             System.out.println("Not enough data to calculate RSI");
             return null;

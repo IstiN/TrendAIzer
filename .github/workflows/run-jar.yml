@@ -1,0 +1,48 @@
+name: Run JAR on GCP VM
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version of the JAR to run (e.g., v1.0.0). Leave blank to use the latest tag.'
+        required: false
+      additional_parameters:
+        description: 'Parameters to pass to the JAR (optional)'
+        required: false
+
+jobs:
+  run-jar:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Get Latest Git Tag (if version not provided)
+        id: get_latest_tag
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            latest_tag=$(git ls-remote --tags origin | awk -F'/' '{print $3}' | sort -V | tail -n1)
+            echo "version=${latest_tag}" >> $GITHUB_ENV
+          else
+            echo "version=${{ inputs.version }}" >> $GITHUB_ENV
+          fi
+
+      - name: Authenticate with Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: 'latest'
+
+      - name: Run JAR on GCP VM
+        run: |
+          gcloud compute ssh testvm --zone=southamerica-east1-b --command="
+            nohup java -cp trendaizer-${{ env.version }}-all.jar com.github.istin.tradingaizer.IndicatorTestingApp ${{ inputs.additional_parameters }} > app.log 2>&1 &"

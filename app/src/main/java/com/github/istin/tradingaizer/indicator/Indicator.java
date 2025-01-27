@@ -6,6 +6,6 @@ import java.util.List;
 
 public abstract class Indicator<Result> {
 
-    public abstract Result calculate(List<StatData> historicalData);
+    public abstract Result calculate(List<? extends StatData> historicalData);
 
 }

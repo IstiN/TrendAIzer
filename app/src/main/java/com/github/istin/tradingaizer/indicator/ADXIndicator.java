@@ -14,7 +14,7 @@ public class ADXIndicator extends Indicator<Double> {
     }
 
     @Override
-    public Double calculate(List<StatData> historicalData) {
+    public Double calculate(List<? extends StatData> historicalData) {
         /*
          * The ADX calculation requires enough data to compute
          * directional movement and true ranges over a 'period'.

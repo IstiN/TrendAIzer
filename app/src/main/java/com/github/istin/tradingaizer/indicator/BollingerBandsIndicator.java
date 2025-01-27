@@ -36,7 +36,7 @@ public class BollingerBandsIndicator extends Indicator<BollingerBandsIndicator.R
     }
 
     @Override
-    public Result calculate(List<StatData> historicalData) {
+    public Result calculate(List<? extends StatData> historicalData) {
         if (historicalData == null || historicalData.size() < period) {
             System.out.println(
                     "Not enough data to calculate Bollinger Bands. Required: " + period +

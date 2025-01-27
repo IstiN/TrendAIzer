@@ -3,6 +3,7 @@ package com.github.istin.tradingaizer;
 import com.github.istin.tradingaizer.indicator.*;
 import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.trader.StatData;
+import com.github.istin.tradingaizer.trader.StatDealData;
 import com.github.istin.tradingaizer.utils.BinanceDataUtils;
 
 import java.util.ArrayList;
@@ -13,7 +14,7 @@ public class IndicatorTestingApp {
     public static void main(String[] args) {
         // 1) Fetch data
         BinanceDataUtils.Result result = BinanceDataUtils.readBtcHistoricalData();
-        List<KlineData> allKlineData = result.historicalData();
+        List<? extends StatDealData> allKlineData = result.historicalData();
 
         int lastSize = 1000;
         if (allKlineData.size() < lastSize) {
@@ -22,7 +23,7 @@ public class IndicatorTestingApp {
         }
 
         // 2) Sub-list for last 100 (or 1000, your choice)
-        List<KlineData> lastItems = allKlineData.subList(
+        List<? extends StatDealData> lastItems = allKlineData.subList(
                 Math.max(0, allKlineData.size() - lastSize),
                 allKlineData.size()
         );
@@ -64,10 +65,10 @@ public class IndicatorTestingApp {
      * Indicator calculates on StatData).
      */
     @SuppressWarnings("unchecked")
-    private static List<? extends StatData> castToStatData(List<KlineData> data) {
+    private static List<? extends StatData> castToStatData(List<? extends StatDealData> data) {
         // Some older code might require a raw cast. If your Indicator<T> uses
         // "List<? extends StatData>", you can do that more directly.
-        return (List<? extends StatData>) (List<?>) data;
+        return data;
     }
 
     /**

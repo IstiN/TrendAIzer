@@ -1,14 +1,13 @@
 package com.github.istin.tradingaizer.model;
 
-import com.github.istin.tradingaizer.trader.DealData;
-import com.github.istin.tradingaizer.trader.StatData;
+import com.github.istin.tradingaizer.trader.StatDealData;
 import lombok.Data;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 @Data
-public class KlineData implements DealData, StatData {
+public class KlineData implements StatDealData {
     private long openTime;
     private double openPrice;
     private double highPrice;

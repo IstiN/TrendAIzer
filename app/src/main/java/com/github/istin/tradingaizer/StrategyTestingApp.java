@@ -2,14 +2,10 @@ package com.github.istin.tradingaizer;
 
 import com.github.istin.tradingaizer.chart.ChartDataProvider;
 import com.github.istin.tradingaizer.model.DecisionReason;
-import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.report.ReportUtils;
 import com.github.istin.tradingaizer.strategy.OptimizedStrategy;
 import com.github.istin.tradingaizer.strategy.Strategy;
-import com.github.istin.tradingaizer.trader.Deal;
-import com.github.istin.tradingaizer.trader.DealExecutor;
-import com.github.istin.tradingaizer.trader.StatData;
-import com.github.istin.tradingaizer.trader.Trader;
+import com.github.istin.tradingaizer.trader.*;
 import com.github.istin.tradingaizer.utils.BinanceDataUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,7 +17,7 @@ public class StrategyTestingApp {
     public static void main(String[] args) {
         // 1) Load historical data once
         BinanceDataUtils.Result result = BinanceDataUtils.readBtcHistoricalData();
-        List<KlineData> fullHistory = result.historicalData();
+        List<? extends StatDealData> fullHistory = result.historicalData();
         if (fullHistory.isEmpty()) {
             System.err.println("No data loaded!");
             return;
@@ -112,9 +108,9 @@ public class StrategyTestingApp {
     /**
      * Run the entire simulation with a given strategy/trader/historical data.
      */
-    private static void runSimulation(Trader trader, Strategy strategy, List<KlineData> history, String ticker) {
+    private static void runSimulation(Trader trader, Strategy strategy, List<? extends StatDealData> history, String ticker) {
         List<StatData> timelineSimulation = new ArrayList<>();
-        for (KlineData data : history) {
+        for (StatDealData data : history) {
             timelineSimulation.add(data);
             DecisionReason decisionReason = strategy.generateDecision(timelineSimulation);
             trader.decisionTrigger(ticker, decisionReason, data);

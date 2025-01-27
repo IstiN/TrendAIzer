@@ -25,7 +25,7 @@ public class MACDIndicator extends Indicator<MACDIndicator.Result> {
     }
 
     @Override
-    public Result calculate(List<StatData> historicalData) {
+    public Result calculate(List<? extends StatData> historicalData) {
         if (historicalData.size() < slowPeriod) {
             System.out.println(
                     "Not enough data to calculate MACD. Required: " + slowPeriod + ", but got: " + historicalData.size()
@@ -47,7 +47,7 @@ public class MACDIndicator extends Indicator<MACDIndicator.Result> {
         return result;
     }
 
-    private void calculateEMAs(List<StatData> historicalData, double[] macdValues, double[] signalLineValues) {
+    private void calculateEMAs(List<? extends StatData> historicalData, double[] macdValues, double[] signalLineValues) {
         int size = historicalData.size();
         double fastMultiplier = 2.0 / (fastPeriod + 1);
         double slowMultiplier = 2.0 / (slowPeriod + 1);

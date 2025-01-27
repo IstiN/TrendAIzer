@@ -10,4 +10,6 @@ public class Config {
     private String apiSecret;
     private Boolean indicatorCache;
     private Boolean binanceCache;
+    private Boolean bybitCache;
+
 }

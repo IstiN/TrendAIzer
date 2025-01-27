@@ -12,7 +12,7 @@ public class MovingAverageIndicator extends Indicator<Double> {
     }
 
     @Override
-    public Double calculate(List<StatData> historicalData) {
+    public Double calculate(List<? extends StatData> historicalData) {
         int size = historicalData.size();
         if (size < period) {
             System.out.println("Not enough data to calculate Moving Average");

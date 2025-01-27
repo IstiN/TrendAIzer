@@ -1,8 +1,8 @@
 package com.github.istin.tradingaizer.report;
 
 import com.github.istin.tradingaizer.StrategyTestingApp;
-import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.trader.Deal;
+import com.github.istin.tradingaizer.trader.StatData;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ReportUtils {
-    public static void generateReport(String fileName, List<Deal> closedDeals, List<KlineData> historicalData) {
+    public static void generateReport(String fileName, List<Deal> closedDeals, List<? extends StatData> historicalData) {
         List<Map<String, Object>> decisions = new ArrayList<>();
         for (Deal deal : closedDeals) {
             Map<String, Object> decisionData = new HashMap<>();

@@ -15,7 +15,7 @@ public class SuperTrendIndicator extends Indicator<Double> {
     }
 
     @Override
-    public Double calculate(List<StatData> historicalData) {
+    public Double calculate(List<? extends StatData> historicalData) {
         // We need at least (atrPeriod + 1) bars
         final int size = historicalData.size();
         if (size < atrPeriod + 1) {

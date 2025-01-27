@@ -2,18 +2,21 @@ package com.github.istin.tradingaizer.utils;
 
 import com.github.istin.tradingaizer.config.Config;
 import com.github.istin.tradingaizer.config.ConfigReader;
-import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.provider.BinanceDataProvider;
 import com.github.istin.tradingaizer.provider.DataProvider;
+import com.github.istin.tradingaizer.trader.StatDealData;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public class BinanceDataUtils {
-    static long MONTH = 1L * 30 * 24 * 60 * 60 * 1000;
+    public static long MONTH = 1L * 30 * 24 * 60 * 60 * 1000;
 
     public static Result readBtcHistoricalData() {
-        return readBtcHistoricalData(0);
+//        return readBtcHistoricalData(0);
+//        return readBtcHistoricalData(22);
+        return readBtcHistoricalData(23);
+//        return readBtcHistoricalData(24);
     }
 
     @NotNull
@@ -21,6 +24,7 @@ public class BinanceDataUtils {
         long endTime = 1737806638768L;
 
         endTime = endTime - months*MONTH;
+        System.out.println(endTime);
         //long endTime = System.currentTimeMillis();
         long threeMonthsAgo = endTime - MONTH;
 
@@ -141,10 +145,10 @@ public class BinanceDataUtils {
 
         String cacheId = ticker + "_" + interval + "_" + endTime + "_" + startTime;
 
-        List<KlineData> historicalData = dataProvider.fetchHistoricalData(ticker, interval, startTime, endTime);
+        List<? extends StatDealData> historicalData = dataProvider.fetchHistoricalData(ticker, interval, startTime, endTime);
         return new Result(cacheId, historicalData);
     }
 
-    public record Result(String cacheId, List<KlineData> historicalData) {
+    public record Result(String cacheId, List<? extends StatDealData> historicalData) {
     }
 }
