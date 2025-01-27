@@ -77,7 +77,10 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          audience: https://github.com/IstiN/TrendAIzer
           create_credentials_file: true
+          export_environment_variables: true
+
 
       - name: Debug GCP Authentication
         run: |
