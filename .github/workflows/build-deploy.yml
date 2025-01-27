@@ -68,18 +68,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code (for context)
+        uses: actions/checkout@v4
+
       - name: Authenticate with Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
 
       - name: Debug GCP Authentication
         run: |
+          echo "Credential File: $GOOGLE_APPLICATION_CREDENTIALS"
+          cat $GOOGLE_APPLICATION_CREDENTIALS
           gcloud auth list
           gcloud config list
-          gcloud projects list
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
