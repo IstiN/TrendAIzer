@@ -43,7 +43,7 @@ jobs:
             nohup java -cp trendaizer-${{ inputs.version }}-all.jar \
               com.github.istin.tradingaizer.IndicatorTestingApp \
               ${{ inputs.additional_parameters }} \
-              > app.log 2>&1 &;
+              > app.log 2>&1 &
             echo 'Java process started';
             sleep 2;  # Give the process time to start
             echo 'Checking process list:';
