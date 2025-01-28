@@ -1,4 +1,4 @@
-name: Build, Release and Deploy Fat JAR
+name: Build, Release, and Deploy Fat JAR
 
 on:
   push:
@@ -40,6 +40,12 @@ jobs:
       - name: Extract Tag Name
         id: extract_tag
         run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Verify Built JAR File
+        run: |
+          echo "Checking for JAR file:"
+          ls -lh app/build/libs
+          echo "Expected file: trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar"
 
       - name: Create a Release
         id: create_release
@@ -87,15 +93,7 @@ jobs:
           project_id: trendaizer
           version: 'latest'
 
-      # If you haven't already done so once, from local terminal you need:
-      # gcloud projects add-iam-policy-binding trendaizer \
-      #   --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
-      #   --role="roles/iam.serviceAccountUser"
-      # gcloud compute instances add-iam-policy-binding testvm \
-      #   --zone=southamerica-east1-b \
-      #   --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
-      #   --role="roles/compute.osAdminLogin"
-
       - name: Deploy JAR to GCP VM
         run: |
-          gcloud compute scp app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
+          echo "Deploying JAR to GCP VM..."
+          gcloud compute scp -v app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
