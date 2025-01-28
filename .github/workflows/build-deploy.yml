@@ -81,7 +81,6 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-
       - name: Debug GCP Authentication
         run: |
           echo "Credential File: $GOOGLE_APPLICATION_CREDENTIALS"
@@ -100,3 +99,5 @@ jobs:
       - name: Deploy JAR to GCP VM
         run: |
           gcloud compute scp app/build/libs/trendaizer-${{ env.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
