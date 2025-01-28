@@ -35,12 +35,36 @@ jobs:
           project_id: trendaizer
           version: 'latest'
 
+      - name: Get Latest Tag or Release
+        id: get_latest_version
+        run: |
+          if [ -z "${{ inputs.version }}" ]; then
+            # Fetch all tags
+            git fetch --prune --unshallow --tags || true
+
+            # Get the latest tag based on version sorting
+            latest_tag=$(git tag --sort=-v:refname | head -n1)
+
+            # Fall back to GitHub API for latest release if no tags are found
+            if [ -z "$latest_tag" ]; then
+              latest_tag=$(curl -s \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                https://api.github.com/repos/IstiN/TrendAIzer/releases/latest | jq -r .tag_name)
+            fi
+
+            echo "Using latest tag: $latest_tag"
+            echo "version=$latest_tag" >> $GITHUB_ENV
+          else
+            echo "Using provided version: ${{ inputs.version }}"
+            echo "version=${{ inputs.version }}" >> $GITHUB_ENV
+          fi
+
       - name: Run JAR on GCP VM
         run: |
-          echo "Running jar version = ${{ inputs.version }}"
+          echo "Running jar version = ${{ env.version }}"
           gcloud compute ssh testvm --zone=southamerica-east1-b --command="
             echo 'Starting Java process from /opt/shared...';
-            nohup java -cp /opt/shared/trendaizer-${{ inputs.version }}-all.jar \
+            nohup java -cp /opt/shared/trendaizer-${{ env.version }}-all.jar \
               com.github.istin.tradingaizer.IndicatorTestingApp \
               ${{ inputs.additional_parameters }} \
               > /opt/shared/app.log 2>&1 &
