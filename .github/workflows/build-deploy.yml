@@ -1,4 +1,4 @@
-name: Build and Deploy Fat JAR
+name: Build, Release and Deploy Fat JAR
 
 on:
   push:
@@ -11,12 +11,8 @@ permissions:
   id-token: write
 
 jobs:
-  build-and-release:
+  build-release-deploy:
     runs-on: ubuntu-latest
-
-    # 1) Define job outputs up front
-    outputs:
-      jar_tag: ${{ steps.extract_tag.outputs.tag_name }}
 
     steps:
       - name: Checkout code
@@ -41,7 +37,6 @@ jobs:
       - name: Build Fat JAR
         run: ./gradlew clean build shadowJar -x integrationTest
 
-      # 2) Extract the tag name and store it as a step output (NOT just $GITHUB_ENV)
       - name: Extract Tag Name
         id: extract_tag
         run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
@@ -52,30 +47,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          # These can still reference "github.ref" if you like
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
           draft: false
           prerelease: false
 
-      - name: Upload JAR to Release
+      - name: Upload JAR to GitHub Release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          # Now reference the step output for the file name
           asset_path: app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar
           asset_name: trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar
           asset_content_type: application/java-archive
-
-  deploy:
-    needs: build-and-release
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code (for context)
-        uses: actions/checkout@v4
 
       - name: Authenticate with Google Cloud
         id: auth
@@ -102,10 +87,15 @@ jobs:
           project_id: trendaizer
           version: 'latest'
 
-      # If you already gave the service account IAM permissions from your local machine,
-      # you can omit the role-binding steps inside the pipeline.
+      # If you haven't already done so once, from local terminal you need:
+      # gcloud projects add-iam-policy-binding trendaizer \
+      #   --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
+      #   --role="roles/iam.serviceAccountUser"
+      # gcloud compute instances add-iam-policy-binding testvm \
+      #   --zone=southamerica-east1-b \
+      #   --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
+      #   --role="roles/compute.osAdminLogin"
 
       - name: Deploy JAR to GCP VM
         run: |
-          # 3) Use the job output from build-and-release here
-          gcloud compute scp app/build/libs/trendaizer-${{ needs.build-and-release.outputs.jar_tag }}-all.jar testvm:~ --zone=southamerica-east1-b
+          gcloud compute scp app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
