@@ -93,9 +93,10 @@ jobs:
           project_id: trendaizer
           version: 'latest'
 
-      - name: Deploy JAR to GCP VM
+      - name: Deploy JAR to Shared Directory on GCP VM
         run: |
-          echo "Deploying JAR to GCP VM..."
-          gcloud compute scp app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
-          echo "Deployment complete. Verifying JAR on VM..."
-          gcloud compute ssh testvm --zone=southamerica-east1-b --command="ls -lh ~"
+          echo "Deploying JAR to /opt/shared directory on GCP VM..."
+          gcloud compute ssh testvm --zone=southamerica-east1-b --command="sudo mkdir -p /opt/shared && sudo chmod 777 /opt/shared"
+          gcloud compute scp app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar testvm:/opt/shared/ --zone=southamerica-east1-b
+          echo "Deployment complete. Verifying JAR in /opt/shared..."
+          gcloud compute ssh testvm --zone=southamerica-east1-b --command="ls -lh /opt/shared"
