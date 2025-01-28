@@ -96,4 +96,6 @@ jobs:
       - name: Deploy JAR to GCP VM
         run: |
           echo "Deploying JAR to GCP VM..."
-          gcloud compute scp -v app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
+          gcloud compute scp app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
+          echo "Deployment complete. Verifying JAR on VM..."
+          gcloud compute ssh testvm --zone=southamerica-east1-b --command="ls -lh ~"
