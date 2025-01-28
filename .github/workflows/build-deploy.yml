@@ -96,6 +96,16 @@ jobs:
           project_id: trendaizer
           version: 'latest'
 
+      - name: Assign IAM Role to Allow SSH
+        run: |
+          gcloud projects add-iam-policy-binding trendaizer \
+            --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
+            --role="roles/iam.serviceAccountUser"
+          gcloud compute instances add-iam-policy-binding testvm \
+            --zone=southamerica-east1-b \
+            --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
+            --role="roles/compute.osAdminLogin"
+
       - name: Deploy JAR to GCP VM
         run: |
           gcloud compute scp app/build/libs/trendaizer-${{ env.tag_name }}-all.jar testvm:~ --zone=southamerica-east1-b
