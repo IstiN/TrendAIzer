@@ -19,34 +19,12 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        # Needed only if you want to read Git tags from your repo
-
-      - name: Get Latest Git Tag (if version not provided)
-        id: get_latest_tag
-        run: |
-          if [ -z "${{ inputs.version }}" ]; then
-            # Fetch tags from remote
-            git fetch --prune --unshallow 2>/dev/null || true
-            # Grab the latest tag by version sort
-            latest_tag=$(git ls-remote --tags origin \
-              | awk -F'/' '{print $3}' \
-              | sed 's/\^{}//' \
-              | sort -V \
-              | tail -n1)
-            echo "Resolved latest_tag=${latest_tag}"
-            echo "version=${latest_tag}" >> $GITHUB_ENV
-          else
-            echo "version=${{ inputs.version }}" >> $GITHUB_ENV
-          fi
-
       - name: Authenticate with Google Cloud
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
-          service_account: "${{ secrets.GCP_SERVICE_ACCOUNT }}"
+          workload_identity_provider: "projects/1071463491007/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
+          service_account: "github-actions-sa@trendaizer.iam.gserviceaccount.com"
           audience: "https://github.com/IstiN/TrendAIzer"
           create_credentials_file: true
           export_environment_variables: true
@@ -54,13 +32,22 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          project_id: trendaizer
           version: 'latest'
 
       - name: Run JAR on GCP VM
         run: |
-          echo "Running jar version = ${{ env.version }}"
-          gcloud compute ssh testvm --zone=southamerica-east1-b --command="nohup java -cp trendaizer-${{ env.version }}-all.jar \
-            com.github.istin.tradingaizer.IndicatorTestingApp \
-            ${{ inputs.additional_parameters }} \
-            > app.log 2>&1 &"
+          echo "Running jar version = ${{ inputs.version }}"
+          gcloud compute ssh testvm --zone=southamerica-east1-b --command="
+            echo 'Starting Java process...';
+            nohup java -cp trendaizer-${{ inputs.version }}-all.jar \
+              com.github.istin.tradingaizer.IndicatorTestingApp \
+              ${{ inputs.additional_parameters }} \
+              > app.log 2>&1 &;
+            echo 'Java process started';
+            sleep 2;  # Give the process time to start
+            echo 'Checking process list:';
+            ps aux | grep java;
+            echo 'Checking logs:';
+            tail -n 10 app.log;
+          "
