@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*.*.*'
-
   workflow_dispatch:
 
 permissions:
@@ -75,9 +74,9 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: projects/1071463491007/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
-          service_account: github-actions-sa@trendaizer.iam.gserviceaccount.com
-          audience: https://github.com/IstiN/TrendAIzer
+          workload_identity_provider: "projects/1071463491007/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
+          service_account: "github-actions-sa@trendaizer.iam.gserviceaccount.com"
+          audience: "https://github.com/IstiN/TrendAIzer"
           create_credentials_file: true
           export_environment_variables: true
 
@@ -96,15 +95,16 @@ jobs:
           project_id: trendaizer
           version: 'latest'
 
-      - name: Assign IAM Role to Allow SSH
-        run: |
-          gcloud projects add-iam-policy-binding trendaizer \
-            --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
-            --role="roles/iam.serviceAccountUser"
-          gcloud compute instances add-iam-policy-binding testvm \
-            --zone=southamerica-east1-b \
-            --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
-            --role="roles/compute.osAdminLogin"
+      # ---- REMOVED the "Assign IAM Role to Allow SSH" step here ----
+      #
+      # You can do it once from your local terminal instead:
+      # gcloud projects add-iam-policy-binding trendaizer \
+      #   --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
+      #   --role="roles/iam.serviceAccountUser"
+      # gcloud compute instances add-iam-policy-binding testvm \
+      #   --zone=southamerica-east1-b \
+      #   --member="serviceAccount:github-actions-sa@trendaizer.iam.gserviceaccount.com" \
+      #   --role="roles/compute.osAdminLogin"
 
       - name: Deploy JAR to GCP VM
         run: |
