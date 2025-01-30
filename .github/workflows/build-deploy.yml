@@ -96,7 +96,23 @@ jobs:
       - name: Deploy JAR to Shared Directory on GCP VM
         run: |
           echo "Deploying JAR to /opt/shared directory on GCP VM..."
-          gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="sudo mkdir -p /opt/shared && sudo chmod 777 /opt/shared"
+
+          # Remove the old JAR file(s)
+          echo "Removing any existing JAR files in /opt/shared..."
+          gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="sudo rm -f /opt/shared/*.jar"
+
+          # Copy the new JAR file to the shared directory
           gcloud compute scp app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar ${{ vars.GCP_VM_NAME }}:/opt/shared/ --zone=southamerica-east1-b
-          echo "Deployment complete. Verifying JAR in /opt/shared..."
+
+          # Update run_algo.sh script to reflect the new JAR file name
+          echo "Updating run_algo.sh with new JAR file name..."
+          gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="
+            echo '#!/bin/bash' > /opt/shared/run_algo.sh &&
+            echo 'cd /opt/shared' >> /opt/shared/run_algo.sh &&
+            echo 'java -cp trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar com.github.istin.tradingaizer.AlgoExecutor' >> /opt/shared/run_algo.sh &&
+            sudo chmod +x /opt/shared/run_algo.sh
+          "
+
+          echo "Deployment complete. Verifying JAR and run_algo.sh in /opt/shared..."
           gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="ls -lh /opt/shared"
+      

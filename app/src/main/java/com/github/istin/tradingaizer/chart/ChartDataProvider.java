@@ -147,7 +147,7 @@ public class ChartDataProvider {
             try {
                 Result result = indicator.calculate(lastItems);
                 indicators.add(result);
-                System.out.println("Indicator: " + indicatorKey + ", Timeframe: " + name + ", Index: " + i + ", From: "+ data.size() +",  Value: " + result);
+                //System.out.println("Indicator: " + indicatorKey + ", Timeframe: " + name + ", Index: " + i + ", From: "+ data.size() +",  Value: " + result);
             } catch (Exception e) {
                 e.printStackTrace();
                 indicators.add(null);

@@ -27,6 +27,8 @@ public class AlgoExecutor {
         Trader trader = new Trader(ticker, 0.01d, 0.04, 0.9d, dealExecutor);
         DecisionReason decisionReason = strategy.generateDecision(historicalData);
         StatDealData statDealData = historicalData.getLast();
+        System.out.println(decisionReason);
+        System.out.println("Current balance: " + trader.getBalance());
         trader.decisionTrigger(ticker, decisionReason, statDealData);
 
 
