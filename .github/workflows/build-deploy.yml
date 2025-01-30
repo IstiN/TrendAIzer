@@ -104,6 +104,14 @@ jobs:
           # Copy the new JAR file to the shared directory
           gcloud compute scp app/build/libs/trendaizer-${{ steps.extract_tag.outputs.tag_name }}-all.jar ${{ vars.GCP_VM_NAME }}:/opt/shared/ --zone=southamerica-east1-b
 
+          # Ensure the directory and the script have proper permissions
+          echo "Ensuring /opt/shared and run_algo.sh have correct permissions..."
+          gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="
+            sudo chmod 777 /opt/shared &&
+            sudo touch /opt/shared/run_algo.sh &&
+            sudo chmod 777 /opt/shared/run_algo.sh
+          "
+
           # Update run_algo.sh script to reflect the new JAR file name
           echo "Updating run_algo.sh with new JAR file name..."
           gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="
@@ -115,4 +123,3 @@ jobs:
 
           echo "Deployment complete. Verifying JAR and run_algo.sh in /opt/shared..."
           gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="ls -lh /opt/shared"
-      
