@@ -1,8 +1,14 @@
 name: Run JAR on GCP VM
 
 on:
-  schedule:  # Run every 5 minute
-    - cron: '*/5 * * * *'
+  workflow_dispatch:  # Manual trigger
+    inputs:
+      version:
+        description: 'Version of the JAR to run (e.g., v1.0.0). Leave blank to use the latest tag.'
+        required: false
+      additional_parameters:
+        description: 'Parameters to pass to the JAR (optional)'
+        required: false
 
 jobs:
   run-jar:
