@@ -1,7 +1,7 @@
 name: Run JAR on GCP VM
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger
     inputs:
       version:
         description: 'Version of the JAR to run (e.g., v1.0.0). Leave blank to use the latest tag.'
@@ -9,6 +9,9 @@ on:
       additional_parameters:
         description: 'Parameters to pass to the JAR (optional)'
         required: false
+
+  schedule:  # Run every 1 minute
+    - cron: '*/1 * * * *'
 
 jobs:
   run-jar:
@@ -29,18 +32,18 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-      - name: Set up Cloud SDK
+      - name: Set up Cloud SDK (Cached)
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
+          install_components: 'gcloud'
           version: 'latest'
 
       - name: Get Latest Tag or Release
         id: get_latest_version
         run: |
           if [ -z "${{ inputs.version }}" ]; then
-            git fetch --prune --unshallow --tags || true
-            latest_tag=$(git tag --sort=-v:refname | head -n1)
+            latest_tag=$(git ls-remote --tags --refs https://github.com/IstiN/TrendAIzer.git | awk -F'/' '{print $NF}' | sort -V | tail -n1)
             if [ -z "$latest_tag" ]; then
               latest_tag=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                 https://api.github.com/repos/IstiN/TrendAIzer/releases/latest | jq -r .tag_name)
@@ -52,29 +55,31 @@ jobs:
             echo "version=${{ inputs.version }}" >> $GITHUB_ENV
           fi
 
-      - name: Set Environment Variables on GCP VM and Run JAR
+      - name: Set Environment Variables and Run JAR on GCP VM
         run: |
           echo "Setting environment variables and running JAR on GCP VM..."
-          gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="
-            echo 'Setting environment variables...';
           
-            # Export environment variables
-            echo 'export BINANCE_KEY=${{ secrets.BINANCE_KEY }}' | sudo tee -a /etc/environment
-            echo 'export BINANCE_SECRET=${{ secrets.BINANCE_SECRET }}' | sudo tee -a /etc/environment
-            echo 'export BINANCE_CACHE=${{ vars.BINANCE_CACHE }}' | sudo tee -a /etc/environment
-            echo 'export BYBIT_CACHE=${{ vars.BYBIT_CACHE }}' | sudo tee -a /etc/environment
-            echo 'export INDICATOR_CACHE=${{ vars.INDICATOR_CACHE }}' | sudo tee -a /etc/environment
-
-            # Apply changes
-            source /etc/environment
-
-            # Verify environment variables
-            echo 'Environment variables set:';
-            env | grep -E 'BINANCE_KEY|BINANCE_SECRET|BINANCE_CACHE|BYBIT_CACHE|INDICATOR_CACHE';
+          # Create an env file to inject variables
+          cat <<EOF > env_vars.sh
+          export BINANCE_KEY='${{ secrets.BINANCE_KEY }}'
+          export BINANCE_SECRET='${{ secrets.BINANCE_SECRET }}'
+          export BINANCE_CACHE='${{ vars.BINANCE_CACHE }}'
+          export BYBIT_CACHE='${{ vars.BYBIT_CACHE }}'
+          export INDICATOR_CACHE='${{ vars.INDICATOR_CACHE }}'
+          EOF
+          
+          # Copy env file to the VM
+          gcloud compute scp env_vars.sh ${{ vars.GCP_VM_NAME }}:/opt/shared/env_vars.sh --zone=southamerica-east1-b
+          
+          # SSH into VM and execute commands
+          gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="
+            echo 'Applying environment variables...';
+            source /opt/shared/env_vars.sh;
+            rm /opt/shared/env_vars.sh;  # Clean up
 
             echo 'Starting Java process from /opt/shared...';
             nohup java -cp /opt/shared/trendaizer-${{ env.version }}-all.jar \
-              com.github.istin.tradingaizer.IndicatorTestingApp \
+              com.github.istin.tradingaizer.AlgoExecutor \
               ${{ inputs.additional_parameters }} \
               > /opt/shared/app.log 2>&1 &
 
@@ -82,7 +87,7 @@ jobs:
             sleep 2;  # Give the process time to start
 
             echo 'Checking process list:';
-            ps aux | grep java;
+            pgrep -laf java;
 
             echo 'Checking logs:';
             tail -n 10 /opt/shared/app.log;
