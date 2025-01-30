@@ -10,8 +10,17 @@ import java.util.List;
 
 public class OptimizedStrategy extends Strategy {
 
+    private int rsiOverbought = 60;
+    private int rsiOversold = 40;
+
     public OptimizedStrategy(String cacheId, ChartDataProvider chartDataProvider) {
         super(cacheId, chartDataProvider);
+    }
+
+    public OptimizedStrategy(String cacheId, ChartDataProvider chartDataProvider, int rsiOverbought, int rsiOversold) {
+        super(cacheId, chartDataProvider);
+        this.rsiOverbought = rsiOverbought;
+        this.rsiOversold = rsiOversold;
     }
 
     @Override
@@ -44,13 +53,12 @@ public class OptimizedStrategy extends Strategy {
         double upperThreshold = latestPrice + (atr * atrMultiplier); // Resistance
         double lowerThreshold = latestPrice - (atr * atrMultiplier); // Support
 
-        // Long Entry Logic
-        if (isUptrend && macd.getMacd() > macd.getSignalLine() && rsi < 60) {
+        if (isUptrend && macd.getMacd() > macd.getSignalLine() && rsi < rsiOverbought) {
             return new DecisionReason(Decision.LONG, "Uptrend, bullish MACD crossover, and RSI is not overbought");
         }
 
         // Short Entry Logic
-        if (isDowntrend && macd.getMacd() < macd.getSignalLine() && rsi > 40) {
+        if (isDowntrend && macd.getMacd() < macd.getSignalLine() && rsi > rsiOversold) {
             return new DecisionReason(Decision.SHORT, "Downtrend, bearish MACD crossover, and RSI is not oversold");
         }
 

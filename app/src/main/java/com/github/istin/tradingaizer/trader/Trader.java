@@ -10,6 +10,7 @@ import java.util.List;
 
 public class Trader {
 
+    private final String ticker;
     private double sumLoss;
     private double sumProfit;
     @Getter
@@ -25,19 +26,19 @@ public class Trader {
 
     private Deal currentDeal;
 
-    public Trader(double balance, double maximumLoss, double minimumProfit, double riskPercentage, DealExecutor dealExecutor) {
-        this.balance = balance;
+    public Trader(String ticker, double maximumLoss, double minimumProfit, double riskPercentage, DealExecutor dealExecutor) {
+        this.balance = dealExecutor.getBalance();
         this.maximumLoss = maximumLoss;
         this.minimumProfit = minimumProfit;
         this.riskPercentage = riskPercentage;
         this.dealExecutor = dealExecutor;
-
+        this.ticker = ticker;
         // Retrieve the current deal from the deal executor
-        this.currentDeal = dealExecutor.getCurrentDeal();
+        this.currentDeal = dealExecutor.getCurrentDeal(ticker);
         if (this.currentDeal != null) {
             System.out.printf("Existing deal loaded: %s at %.2f with trade size %.2f. Stop loss: %.2f%n",
                     currentDeal.getDirection(), currentDeal.getOpenedData().getPrice(),
-                    currentDeal.getOpenAmount(), currentDeal.getStopLoss());
+                    currentDeal.getOpenAmountUSDT(), currentDeal.getStopLoss());
         }
     }
 
@@ -74,7 +75,7 @@ public class Trader {
             } else if ((currentDeal.getDirection() == Direction.LONG && decision == Decision.SHORT) ||
                     (currentDeal.getDirection() == Direction.SHORT && decision == Decision.LONG)) {
                 closeDeal(dealData, "Opposite decision received: " + decisionReason.getReason());
-                decisionTrigger(ticker, decisionReason, dealData); // Trigger the new deal after closing
+                //decisionTrigger(ticker, decisionReason, dealData); // Trigger the new deal after closing
             } else {
                 updateStopLoss(dealData.getPrice());
                 System.out.printf("hold: %s %.2f, profit/loss: %.2f (%.2f%%), current price: %.2f, stop loss: %.2f%n",
@@ -96,9 +97,9 @@ public class Trader {
 
     private double calculateProfitLoss(double currentPrice) {
         if (currentDeal.getDirection() == Direction.LONG) {
-            return currentDeal.getOpenAmount() * (currentPrice - currentDeal.getOpenedData().getPrice()) / currentDeal.getOpenedData().getPrice();
+            return currentDeal.getOpenAmountUSDT() * (currentPrice - currentDeal.getOpenedData().getPrice()) / currentDeal.getOpenedData().getPrice();
         } else {
-            return currentDeal.getOpenAmount() * (currentDeal.getOpenedData().getPrice() - currentPrice) / currentDeal.getOpenedData().getPrice();
+            return currentDeal.getOpenAmountUSDT() * (currentDeal.getOpenedData().getPrice() - currentPrice) / currentDeal.getOpenedData().getPrice();
         }
     }
 
@@ -128,7 +129,7 @@ public class Trader {
 
     private void closeDeal(DealData dealData, String reason) {
         double profitLoss = calculateProfitLoss(dealData.getPrice());
-        currentDeal.setClosedAmount(currentDeal.getOpenAmount() + profitLoss);
+        currentDeal.setClosedAmount(currentDeal.getOpenAmountUSDT() + profitLoss);
         currentDeal.setCloseData(dealData);
 
         // Use the deal executor to handle the closing logic
@@ -157,7 +158,7 @@ public class Trader {
             return 0.0;
         }
 
-        long wins = closedDeals.stream().filter(deal -> deal.getClosedAmount() > deal.getOpenAmount()).count();
+        long wins = closedDeals.stream().filter(deal -> deal.getClosedAmount() > deal.getOpenAmountUSDT()).count();
         long losses = closedDeals.size() - wins;
 
         double winPercentage = (double) wins / closedDeals.size() * 100;

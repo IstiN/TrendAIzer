@@ -11,15 +11,15 @@ public class Deal {
     private DealData closeData;
     private Direction direction;
     private double stopLoss;
-    private double openAmount;
+    private double openAmountUSDT;
     private double closedAmount;
     private String message;
 
-    public Deal(String ticker, double maximumLoss, DealData dealData, Direction direction, double tradeSize) {
+    public Deal(String ticker, double maximumLoss, DealData dealData, Direction direction, double tradeSizeUSDT) {
         this.ticker = ticker;
         this.openedData = dealData;
         this.direction = direction;
-        this.openAmount = tradeSize;
+        this.openAmountUSDT = tradeSizeUSDT;
         this.stopLoss = direction == Direction.LONG ?
                 dealData.getPrice() * (1 - maximumLoss) : dealData.getPrice() * (1 + maximumLoss);
     }

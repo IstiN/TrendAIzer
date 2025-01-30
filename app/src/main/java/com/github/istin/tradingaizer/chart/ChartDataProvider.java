@@ -1,9 +1,9 @@
 package com.github.istin.tradingaizer.chart;
 
+import com.github.istin.tradingaizer.config.ConfigReader;
 import com.github.istin.tradingaizer.indicator.Indicator;
 import com.github.istin.tradingaizer.indicator.Timeframe;
 import com.github.istin.tradingaizer.indicator.TimeframeAggregator;
-import com.github.istin.tradingaizer.model.KlineData;
 import com.github.istin.tradingaizer.trader.StatData;
 
 import java.io.*;
@@ -22,6 +22,7 @@ public class ChartDataProvider {
     private final List<StatData> data15m;
     private final List<StatData> data5m;
     private final Map<String, Map<String, List<?>>> indicatorCache = new ConcurrentHashMap<>();
+    private Boolean isIndicatorCacheEnabled = false;
 
     public ChartDataProvider(String cacheId, List<? extends StatData> statData1MinutTimeframe) {
         this.cacheId = cacheId;
@@ -29,32 +30,36 @@ public class ChartDataProvider {
         this.data5m = TimeframeAggregator.convertToTimeframe(this.data1m, Timeframe.M5);
         this.data15m = TimeframeAggregator.convertToTimeframe(this.data1m, Timeframe.M15);
         this.data1h = TimeframeAggregator.convertToTimeframe(this.data1m, Timeframe.H1);
-
+        isIndicatorCacheEnabled = new ConfigReader().getConfig().getIndicatorCache();
         restoreCache();
     }
 
     private void restoreCache() {
-        File cacheFile = new File(CACHE_FOLDER, cacheId + ".ser");
-        if (cacheFile.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(cacheFile))) {
-                Map<String, Map<String, List<?>>> restoredCache = (Map<String, Map<String, List<?>>>) ois.readObject();
-                indicatorCache.putAll(restoredCache);
-            } catch (IOException | ClassNotFoundException e) {
-                System.err.println("Failed to restore cache: " + e.getMessage());
+        if (isIndicatorCacheEnabled) {
+            File cacheFile = new File(CACHE_FOLDER, cacheId + ".ser");
+            if (cacheFile.exists()) {
+                try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(cacheFile))) {
+                    Map<String, Map<String, List<?>>> restoredCache = (Map<String, Map<String, List<?>>>) ois.readObject();
+                    indicatorCache.putAll(restoredCache);
+                } catch (IOException | ClassNotFoundException e) {
+                    System.err.println("Failed to restore cache: " + e.getMessage());
+                }
             }
         }
     }
 
     private void saveCache() {
-        File cacheDir = new File(CACHE_FOLDER);
-        if (!cacheDir.exists()) {
-            cacheDir.mkdirs();
-        }
-        File cacheFile = new File(cacheDir, cacheId + ".ser");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(cacheFile))) {
-            oos.writeObject(indicatorCache);
-        } catch (IOException e) {
-            System.err.println("Failed to save cache: " + e.getMessage());
+        if (isIndicatorCacheEnabled) {
+            File cacheDir = new File(CACHE_FOLDER);
+            if (!cacheDir.exists()) {
+                cacheDir.mkdirs();
+            }
+            File cacheFile = new File(cacheDir, cacheId + ".ser");
+            try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(cacheFile))) {
+                oos.writeObject(indicatorCache);
+            } catch (IOException e) {
+                System.err.println("Failed to save cache: " + e.getMessage());
+            }
         }
     }
 

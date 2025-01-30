@@ -14,9 +14,14 @@ import java.util.List;
 
 public class StrategyTestingApp {
 
+    static String TICKER = "XRPUSDT";
+
     public static void main(String[] args) {
         // 1) Load historical data once
-        BinanceDataUtils.Result result = BinanceDataUtils.readBtcHistoricalData();
+        long endTime = System.currentTimeMillis();
+        //long endTime = System.currentTimeMillis();
+        long threeMonthsAgo = endTime - (1L * 30 * 24 * 60 * 60 * 1000);
+        BinanceDataUtils.Result result = BinanceDataUtils.readDataFromBinance(TICKER, "1m", threeMonthsAgo, endTime);
         List<? extends StatDealData> fullHistory = result.historicalData();
         if (fullHistory.isEmpty()) {
             System.err.println("No data loaded!");
@@ -26,7 +31,7 @@ public class StrategyTestingApp {
         ChartDataProvider chartDataProvider = new ChartDataProvider(result.cacheId(), fullHistory);
 
         // 2) Strategy to test
-        Strategy strategy = new OptimizedStrategy(result.cacheId(), chartDataProvider);
+        Strategy strategy = new OptimizedStrategy(result.cacheId(), chartDataProvider, 60, 40);
 
         // 3) Generate parameter ranges from 0.01 to 0.30 inclusive
         //    with step 0.01 => 0.01, 0.02, ..., 0.30
@@ -37,7 +42,7 @@ public class StrategyTestingApp {
         double step = 0.01;
         double start = 0.1;
         double end   = 0.5;
-        double[] maxLossRange = generateRange(0.03, 0.03, step);
+        double[] maxLossRange = generateRange(0.01, 0.03, step);
         double[] minProfitRange = generateRange(0.04, 0.04d, step);
 
         // Tracking best result
@@ -46,7 +51,7 @@ public class StrategyTestingApp {
         double bestMaxLoss      = 0.0;
         double bestMinProfit    = 0.0;
 
-        String ticker = "BTCUSDT";
+
 
         // 4) Loop over all param combos
         for (double minProfit : minProfitRange) {
@@ -56,7 +61,7 @@ public class StrategyTestingApp {
                 Trader trader = createTrader(maxLoss, minProfit);
 
                 // Run simulation
-                runSimulation(trader, strategy, fullHistory, ticker);
+                runSimulation(trader, strategy, fullHistory, TICKER);
 
                 // Evaluate
                 trader.calculateWinRate();
@@ -80,7 +85,7 @@ public class StrategyTestingApp {
 
         // (Optional) final run with best params, produce report
         Trader bestTrader = createTrader(bestMaxLoss, bestMinProfit);
-        runSimulation(bestTrader, strategy, fullHistory, ticker);
+        runSimulation(bestTrader, strategy, fullHistory, TICKER);
         List<Deal> closedDeals = bestTrader.getClosedDeals();
         ReportUtils.generateReport("trading_chart.html", closedDeals, fullHistory);
     }
@@ -90,7 +95,12 @@ public class StrategyTestingApp {
      */
     @NotNull
     private static Trader createTrader(double maximumLoss, double minimumProfit) {
-        return new Trader(1000d, maximumLoss, minimumProfit, 1d, new DealExecutor() {
+        return new Trader(TICKER, maximumLoss, minimumProfit, 1d, new DealExecutor() {
+            @Override
+            public double getBalance() {
+                return 1000d;
+            }
+
             @Override
             public void submitDeal(Deal deal) {}
 
@@ -98,7 +108,7 @@ public class StrategyTestingApp {
             public void closeDeal(Deal deal, double closePrice) {}
 
             @Override
-            public Deal getCurrentDeal() { return null; }
+            public Deal getCurrentDeal(String ticker) { return null; }
 
             @Override
             public void updateStopLoss(Deal deal, double newStopLoss) {}

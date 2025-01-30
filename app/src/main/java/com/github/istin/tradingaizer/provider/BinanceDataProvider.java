@@ -19,7 +19,7 @@ public class BinanceDataProvider implements DataProvider {
     private final CacheManager cacheManager;
 
     public BinanceDataProvider(String apiKey, String apiSecret) {
-        this.client = new SpotClientImpl(apiKey, apiSecret, "https://api.binance.us");
+        this.client = new SpotClientImpl(apiKey, apiSecret, "https://api.binance.com");
         this.isBinanceCache = new ConfigReader().getConfig().getBinanceCache();
         this.cacheManager = new CacheManager("binance");
     }
