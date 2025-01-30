@@ -18,27 +18,37 @@ public class ConfigReader {
     public void loadConfig() {
         Properties properties = new Properties();
 
+        // Load properties from file (fallback mechanism)
         try (InputStream input = ReportBuildingApp.class.getClassLoader().getResourceAsStream("config.properties")) {
-            if (input == null) {
-                System.out.println("Sorry, unable to find config.properties");
-                return;
+            if (input != null) {
+                properties.load(input);
+            } else {
+                System.out.println("WARNING: config.properties not found. Relying on environment variables.");
             }
-
-            properties.load(input);
-
-            String apiKey = properties.getProperty("BINANCE_KEY");
-            String apiSecret = properties.getProperty("BINANCE_SECRET");
-            Boolean indicatorCache = Boolean.parseBoolean(properties.getProperty("INDICATOR_CACHE"));
-            Boolean binanceCache = Boolean.parseBoolean(properties.getProperty("BINANCE_CACHE"));
-            Boolean bybitCache = Boolean.parseBoolean(properties.getProperty("BYBIT_CACHE"));
-
-            if (apiKey == null || apiSecret == null) {
-                throw new IllegalArgumentException("API key or secret not found in properties file.");
-            }
-            this.config = new Config(apiKey, apiSecret, indicatorCache, binanceCache, bybitCache);
-
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        // Read from environment variables first, fallback to properties file
+        String apiKey = getEnvOrProperty("BINANCE_KEY", properties);
+        String apiSecret = getEnvOrProperty("BINANCE_SECRET", properties);
+        Boolean indicatorCache = Boolean.parseBoolean(getEnvOrProperty("INDICATOR_CACHE", properties));
+        Boolean binanceCache = Boolean.parseBoolean(getEnvOrProperty("BINANCE_CACHE", properties));
+        Boolean bybitCache = Boolean.parseBoolean(getEnvOrProperty("BYBIT_CACHE", properties));
+
+        // Validate required variables
+        if (apiKey == null || apiSecret == null) {
+            throw new IllegalArgumentException("ERROR: API key or secret not found in environment variables or properties file.");
+        }
+
+        this.config = new Config(apiKey, apiSecret, indicatorCache, binanceCache, bybitCache);
+    }
+
+    private String getEnvOrProperty(String key, Properties properties) {
+        String value = System.getenv(key); // Check environment variable first
+        if (value == null) {
+            value = properties.getProperty(key); // Fallback to properties file
+        }
+        return value;
     }
 }
