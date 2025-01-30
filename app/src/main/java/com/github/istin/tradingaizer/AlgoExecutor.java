@@ -29,6 +29,7 @@ public class AlgoExecutor {
         StatDealData statDealData = historicalData.getLast();
         trader.decisionTrigger(ticker, decisionReason, statDealData);
 
+
 //        double priceUsdt = 6;
         //SIZE is in target crypt
 //        TODO Deal deal = new Deal(ticker, 0.01, new KlineData(), Direction.LONG,  Math.round(priceUsdt / statDealData.getPrice() * 10.0) / 10.0);
