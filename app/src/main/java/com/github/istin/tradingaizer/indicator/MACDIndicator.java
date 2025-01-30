@@ -27,9 +27,9 @@ public class MACDIndicator extends Indicator<MACDIndicator.Result> {
     @Override
     public Result calculate(List<? extends StatData> historicalData) {
         if (historicalData.size() < slowPeriod) {
-            System.out.println(
-                    "Not enough data to calculate MACD. Required: " + slowPeriod + ", but got: " + historicalData.size()
-            );
+//            System.out.println(
+//                    "Not enough data to calculate MACD. Required: " + slowPeriod + ", but got: " + historicalData.size()
+//            );
             return null;
         }
 

@@ -18,7 +18,7 @@ public class IndicatorTestingApp {
 
         int lastSize = 1000;
         if (allKlineData.size() < lastSize) {
-            System.err.println("Not enough data to extract last 100 items.");
+            //System.err.println("Not enough data to extract last 100 items.");
             return;
         }
 

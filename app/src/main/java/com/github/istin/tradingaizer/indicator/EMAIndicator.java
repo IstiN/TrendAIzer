@@ -19,7 +19,7 @@ public class EMAIndicator extends Indicator<Double> {
     public Double calculate(List<? extends StatData> historicalData) {
         // Ensure enough data points
         if (historicalData == null || historicalData.size() < period) {
-            System.out.println("Not enough data to calculate EMA. Required: " + period);
+//            System.out.println("Not enough data to calculate EMA. Required: " + period);
             return null;
         }
 

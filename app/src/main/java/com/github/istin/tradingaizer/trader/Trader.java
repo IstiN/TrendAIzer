@@ -61,6 +61,7 @@ public class Trader {
 
                 System.out.printf("[DEAL] New deal opened: %s at %.2f with trade size %.2f. Stop loss: %.2f Reason: %s%n " + DateUtils.convertToDateTime(dealData),
                         currentDeal.getDirection(), dealData.getPrice(), tradeSize, currentDeal.getStopLoss(), decisionReason.getReason());
+                updateStopLoss(dealData.getPrice());
             }
         } else {
             double profitLoss = calculateProfitLoss(dealData.getPrice());

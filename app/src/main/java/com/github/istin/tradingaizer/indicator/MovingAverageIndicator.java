@@ -15,7 +15,7 @@ public class MovingAverageIndicator extends Indicator<Double> {
     public Double calculate(List<? extends StatData> historicalData) {
         int size = historicalData.size();
         if (size < period) {
-            System.out.println("Not enough data to calculate Moving Average");
+//            System.out.println("Not enough data to calculate Moving Average");
             return null;
         }
 

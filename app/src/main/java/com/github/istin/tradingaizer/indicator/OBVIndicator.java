@@ -9,7 +9,7 @@ public class OBVIndicator extends Indicator<Double> {
     @Override
     public Double calculate(List<? extends StatData> historicalData) {
         if (historicalData == null || historicalData.size() < 2) {
-            System.out.println("Not enough data to calculate OBV");
+//            System.out.println("Not enough data to calculate OBV");
             return null;
         }
 

@@ -20,8 +20,8 @@ public class ADXIndicator extends Indicator<Double> {
          * directional movement and true ranges over a 'period'.
          */
         if (historicalData.size() < period + 1) {
-            System.out.println("Not enough data to calculate ADX. Required: " + (period + 1)
-                    + ", but got: " + historicalData.size());
+//            System.out.println("Not enough data to calculate ADX. Required: " + (period + 1)
+//                    + ", but got: " + historicalData.size());
             return null;
         }
 

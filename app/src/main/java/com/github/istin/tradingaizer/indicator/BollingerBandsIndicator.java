@@ -38,10 +38,10 @@ public class BollingerBandsIndicator extends Indicator<BollingerBandsIndicator.R
     @Override
     public Result calculate(List<? extends StatData> historicalData) {
         if (historicalData == null || historicalData.size() < period) {
-            System.out.println(
-                    "Not enough data to calculate Bollinger Bands. Required: " + period +
-                            ", but got: " + (historicalData == null ? 0 : historicalData.size())
-            );
+//            System.out.println(
+//                    "Not enough data to calculate Bollinger Bands. Required: " + period +
+//                            ", but got: " + (historicalData == null ? 0 : historicalData.size())
+//            );
             return null;
         }
 

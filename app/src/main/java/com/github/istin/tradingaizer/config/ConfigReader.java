@@ -23,7 +23,7 @@ public class ConfigReader {
             if (input != null) {
                 properties.load(input);
             } else {
-                System.out.println("WARNING: config.properties not found. Relying on environment variables.");
+                //System.out.println("WARNING: config.properties not found. Relying on environment variables.");
             }
         } catch (Exception e) {
             e.printStackTrace();
