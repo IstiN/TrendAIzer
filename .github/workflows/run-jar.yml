@@ -23,8 +23,8 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: "projects/1071463491007/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
-          service_account: "github-actions-sa@trendaizer.iam.gserviceaccount.com"
+          workload_identity_provider: "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ secrets.GCP_SERVICE_ACCOUNT }}"
           audience: "https://github.com/IstiN/TrendAIzer"
           create_credentials_file: true
           export_environment_variables: true
@@ -32,7 +32,7 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
         with:
-          project_id: trendaizer
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
           version: 'latest'
 
       - name: Get Latest Tag or Release
@@ -62,7 +62,7 @@ jobs:
       - name: Run JAR on GCP VM
         run: |
           echo "Running jar version = ${{ env.version }}"
-          gcloud compute ssh testvm --zone=southamerica-east1-b --command="
+          gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="
             echo 'Starting Java process from /opt/shared...';
             nohup java -cp /opt/shared/trendaizer-${{ env.version }}-all.jar \
               com.github.istin.tradingaizer.IndicatorTestingApp \

@@ -26,11 +26,11 @@ public class ConfigReader {
 
             properties.load(input);
 
-            String apiKey = properties.getProperty("binance.key");
-            String apiSecret = properties.getProperty("binance.secret");
-            Boolean indicatorCache = Boolean.parseBoolean(properties.getProperty("indicator.cache"));
-            Boolean binanceCache = Boolean.parseBoolean(properties.getProperty("binance.cache"));
-            Boolean bybitCache = Boolean.parseBoolean(properties.getProperty("bybit.cache"));
+            String apiKey = properties.getProperty("BINANCE_KEY");
+            String apiSecret = properties.getProperty("BINANCE_SECRET");
+            Boolean indicatorCache = Boolean.parseBoolean(properties.getProperty("INDICATOR_CACHE"));
+            Boolean binanceCache = Boolean.parseBoolean(properties.getProperty("BINANCE_CACHE"));
+            Boolean bybitCache = Boolean.parseBoolean(properties.getProperty("BYBIT_CACHE"));
 
             if (apiKey == null || apiSecret == null) {
                 throw new IllegalArgumentException("API key or secret not found in properties file.");
