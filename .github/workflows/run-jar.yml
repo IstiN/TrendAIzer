@@ -39,19 +39,12 @@ jobs:
         id: get_latest_version
         run: |
           if [ -z "${{ inputs.version }}" ]; then
-            # Fetch all tags
             git fetch --prune --unshallow --tags || true
-
-            # Get the latest tag based on version sorting
             latest_tag=$(git tag --sort=-v:refname | head -n1)
-
-            # Fall back to GitHub API for latest release if no tags are found
             if [ -z "$latest_tag" ]; then
-              latest_tag=$(curl -s \
-                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              latest_tag=$(curl -s -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                 https://api.github.com/repos/IstiN/TrendAIzer/releases/latest | jq -r .tag_name)
             fi
-
             echo "Using latest tag: $latest_tag"
             echo "version=$latest_tag" >> $GITHUB_ENV
           else
@@ -59,19 +52,38 @@ jobs:
             echo "version=${{ inputs.version }}" >> $GITHUB_ENV
           fi
 
-      - name: Run JAR on GCP VM
+      - name: Set Environment Variables on GCP VM and Run JAR
         run: |
-          echo "Running jar version = ${{ env.version }}"
+          echo "Setting environment variables and running JAR on GCP VM..."
           gcloud compute ssh ${{ vars.GCP_VM_NAME }} --zone=southamerica-east1-b --command="
+            echo 'Setting environment variables...';
+          
+            # Export environment variables
+            echo 'export BINANCE_KEY=${{ secrets.BINANCE_KEY }}' | sudo tee -a /etc/environment
+            echo 'export BINANCE_SECRET=${{ secrets.BINANCE_SECRET }}' | sudo tee -a /etc/environment
+            echo 'export BINANCE_CACHE=${{ vars.BINANCE_CACHE }}' | sudo tee -a /etc/environment
+            echo 'export BYBIT_CACHE=${{ vars.BYBIT_CACHE }}' | sudo tee -a /etc/environment
+            echo 'export INDICATOR_CACHE=${{ vars.INDICATOR_CACHE }}' | sudo tee -a /etc/environment
+
+            # Apply changes
+            source /etc/environment
+
+            # Verify environment variables
+            echo 'Environment variables set:';
+            env | grep -E 'BINANCE_KEY|BINANCE_SECRET|BINANCE_CACHE|BYBIT_CACHE|INDICATOR_CACHE';
+
             echo 'Starting Java process from /opt/shared...';
             nohup java -cp /opt/shared/trendaizer-${{ env.version }}-all.jar \
               com.github.istin.tradingaizer.IndicatorTestingApp \
               ${{ inputs.additional_parameters }} \
               > /opt/shared/app.log 2>&1 &
+
             echo 'Java process started';
             sleep 2;  # Give the process time to start
+
             echo 'Checking process list:';
             ps aux | grep java;
+
             echo 'Checking logs:';
             tail -n 10 /opt/shared/app.log;
           "
