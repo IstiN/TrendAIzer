@@ -15,12 +15,11 @@ public class Trader {
     private double sumProfit;
     @Getter
     private double balance;
-    private double maximumLoss; // Stop-loss as a percentage
-    private double minimumProfit; // Take-profit as a percentage
-    private double riskPercentage; // Percentage of balance to risk per trade
+    private double maximumLoss;
+    private double minimumProfit;
+    private double riskPercentage;
 
-    private final DealExecutor dealExecutor; // Interface instance
-
+    private final DealExecutor dealExecutor;
     @Getter
     private List<Deal> closedDeals = new ArrayList<>();
 
@@ -33,7 +32,6 @@ public class Trader {
         this.riskPercentage = riskPercentage;
         this.dealExecutor = dealExecutor;
         this.ticker = ticker;
-        // Retrieve the current deal from the deal executor
         this.currentDeal = dealExecutor.getCurrentDeal(ticker);
         if (this.currentDeal != null) {
             System.out.printf("Existing deal loaded: %s at %.2f with trade size %.2f. Stop loss: %.2f%n",
@@ -42,59 +40,73 @@ public class Trader {
         }
     }
 
-
     public void decisionTrigger(String ticker, DecisionReason decisionReason, DealData dealData) {
         Decision decision = decisionReason.getDecision();
-
         if (currentDeal == null) {
             if (decision == Decision.LONG || decision == Decision.SHORT) {
-                // Use dynamic stop-loss if provided, otherwise fall back to default logic
                 double tradeSize = balance * riskPercentage;
-                double stopLoss = decisionReason.getDynamicStopLoss() != null
-                        ? decisionReason.getDynamicStopLoss()
-                        : calculateDefaultStopLoss(dealData.getPrice(), decision == Decision.LONG);
-
-                currentDeal = new Deal(ticker, stopLoss, dealData,
+                double stopLossPrice = recalcStopLoss(decisionReason, dealData, decision);
+                currentDeal = new Deal(ticker, dealData,
                         decision == Decision.LONG ? Direction.LONG : Direction.SHORT, tradeSize);
-
+                currentDeal.setStopLoss(stopLossPrice);
                 dealExecutor.submitDeal(currentDeal);
-
-                System.out.printf("[DEAL] New deal opened: %s at %.2f with trade size %.2f. Stop loss: %.2f Reason: %s%n " + DateUtils.convertToDateTime(dealData),
-                        currentDeal.getDirection(), dealData.getPrice(), tradeSize, currentDeal.getStopLoss(), decisionReason.getReason());
-                updateStopLoss(dealData.getPrice());
+                System.out.printf("[DEAL] New deal opened: %s at %.2f with trade size %.2f. Stop loss: %.2f. Reason: %s   %s%n",
+                        currentDeal.getDirection(),
+                        dealData.getPrice(),
+                        tradeSize,
+                        currentDeal.getStopLoss(),
+                        decisionReason.getReason(),
+                        DateUtils.convertToDateTime(dealData));
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                currentDeal = dealExecutor.getCurrentDeal(ticker);
+                stopLossPrice = recalcStopLoss(decisionReason, dealData, decision);
+                currentDeal.setStopLoss(stopLossPrice);
+                dealExecutor.updateStopLoss(currentDeal, stopLossPrice);
             }
-        } else {
-            double profitLoss = calculateProfitLoss(dealData.getPrice());
-            double profitLossPercentage = profitLoss / balance;
-
-            if (isStopLossTriggered(dealData.getPrice())) {
-                closeDeal(dealData, "Stop loss triggered");
-            } else if (profitLossPercentage >= minimumProfit || (decisionReason.getTakeProfit() != null && dealData.getPrice() >= decisionReason.getTakeProfit())) {
-                closeDeal(dealData, "Take-profit reached");
-            } else if (decision == Decision.CLOSE) {
-                closeDeal(dealData, "Close decision received: " + decisionReason.getReason());
-            } else if ((currentDeal.getDirection() == Direction.LONG && decision == Decision.SHORT) ||
-                    (currentDeal.getDirection() == Direction.SHORT && decision == Decision.LONG)) {
-                closeDeal(dealData, "Opposite decision received: " + decisionReason.getReason());
-                //decisionTrigger(ticker, decisionReason, dealData); // Trigger the new deal after closing
-            } else {
-                updateStopLoss(dealData.getPrice());
-                System.out.printf("hold: %s %.2f, profit/loss: %.2f (%.2f%%), current price: %.2f, stop loss: %.2f%n",
-                        currentDeal.getDirection(), currentDeal.getOpenedData().getPrice(),
-                        profitLoss, profitLossPercentage * 100, dealData.getPrice(), currentDeal.getStopLoss());
-            }
+            return;
         }
+        double profitLoss = calculateProfitLoss(dealData.getPrice());
+        double profitLossPercentage = profitLoss / balance;
+        if (isStopLossTriggered(dealData.getPrice())) {
+            closeDeal(dealData, "Stop loss triggered");
+        } else if (profitLossPercentage >= minimumProfit ||
+                (decisionReason.getTakeProfit() != null && ((currentDeal.getDirection() == Direction.LONG && dealData.getPrice() >= decisionReason.getTakeProfit())
+                        || (currentDeal.getDirection() == Direction.SHORT && dealData.getPrice() <= decisionReason.getTakeProfit())))) {
+            closeDeal(dealData, "Take-profit reached");
+        } else if (decision == Decision.CLOSE) {
+            closeDeal(dealData, "Close decision received: " + decisionReason.getReason());
+        } else if ((currentDeal.getDirection() == Direction.LONG && decision == Decision.SHORT) ||
+                (currentDeal.getDirection() == Direction.SHORT && decision == Decision.LONG)) {
+            closeDeal(dealData, "Opposite signal: " + decisionReason.getReason());
+        } else {
+            updateStopLoss(dealData.getPrice(), currentDeal.getOpenAmountUSDT());
+            System.out.printf("Hold %s @ %.2f, P/L: %.2f (%.2f%%), price: %.2f, stop: %.2f%n",
+                    currentDeal.getDirection(),
+                    currentDeal.getOpenedData().getPrice(),
+                    profitLoss,
+                    profitLossPercentage * 100,
+                    dealData.getPrice(),
+                    currentDeal.getStopLoss());
+        }
+    }
+
+    private double recalcStopLoss(DecisionReason decisionReason, DealData dealData, Decision decision) {
+        return decisionReason.getDynamicStopLoss() != null
+                ? decisionReason.getDynamicStopLoss()
+                : calculateDefaultStopLoss(dealData.getPrice(), decision == Decision.LONG);
     }
 
     private double calculateDefaultStopLoss(double price, boolean isLong) {
-        double stopLossPercentage = maximumLoss; // Maximum loss percentage
         if (isLong) {
-            return price * (1 - stopLossPercentage);
+            return price * (1 - maximumLoss);
         } else {
-            return price * (1 + stopLossPercentage);
+            return price * (1 + maximumLoss);
         }
     }
-
 
     private double calculateProfitLoss(double currentPrice) {
         if (currentDeal.getDirection() == Direction.LONG) {
@@ -109,21 +121,18 @@ public class Trader {
                 (currentDeal.getDirection() == Direction.SHORT && currentPrice >= currentDeal.getStopLoss());
     }
 
-    private void updateStopLoss(double currentPrice) {
-        double profitPercentage = calculateProfitLoss(currentPrice) / balance;
+    private void updateStopLoss(double price, double money) {
+        double profitPercentage = calculateProfitLoss(price) / money;
         if (profitPercentage > 0) {
             double newStopLoss;
             if (currentDeal.getDirection() == Direction.LONG) {
-                newStopLoss = currentPrice * (1 - maximumLoss / 2); // Tighten stop-loss in profit
+                newStopLoss = price * (1 - maximumLoss / 2.0);
                 currentDeal.setStopLoss(Math.max(currentDeal.getStopLoss(), newStopLoss));
             } else {
-                newStopLoss = currentPrice * (1 + maximumLoss / 2); // Tighten stop-loss in profit
+                newStopLoss = price * (1 + maximumLoss / 2.0);
                 currentDeal.setStopLoss(Math.min(currentDeal.getStopLoss(), newStopLoss));
             }
-
-            // Update the stop loss through the deal executor
             dealExecutor.updateStopLoss(currentDeal, currentDeal.getStopLoss());
-
             System.out.printf("Stop loss updated to %.2f%n", currentDeal.getStopLoss());
         }
     }
@@ -132,38 +141,45 @@ public class Trader {
         double profitLoss = calculateProfitLoss(dealData.getPrice());
         currentDeal.setClosedAmount(currentDeal.getOpenAmountUSDT() + profitLoss);
         currentDeal.setCloseData(dealData);
-
-        // Use the deal executor to handle the closing logic
         dealExecutor.closeDeal(currentDeal, dealData.getPrice());
-
-        balance += profitLoss;
-        if (profitLoss > 0) {
-            sumProfit += profitLoss;
-        } else {
-            sumLoss += profitLoss;
+        double oldBalance = this.balance;
+        if (dealExecutor instanceof  FakeDealExecutor) {
+            ((FakeDealExecutor)dealExecutor).setBalance(balance + profitLoss);
         }
-        long openDuration = (dealData.getWhen() - currentDeal.getOpenedData().getWhen()) / 1000L / 60L;  // Duration in minutes
-        String durationMessage = String.format("Open duration: %d min", openDuration);
-
-        currentDeal.setMessage(String.format("[DEAL] Deal closed. Reason: %s. PL: %.2f. New balance: %.2f. %s  " + DateUtils.convertToDateTime(dealData),
-                reason, profitLoss, balance, durationMessage));
+        this.balance = dealExecutor.getBalance();
+        double approximatePnL = this.balance - oldBalance;
+        if (approximatePnL > 0) {
+            sumProfit += approximatePnL;
+        } else {
+            sumLoss += approximatePnL;
+        }
+        long openDuration = (dealData.getWhen() - currentDeal.getOpenedData().getWhen()) / 1000L / 60L;
+        currentDeal.setMessage(String.format(
+                "[DEAL] Deal closed. Reason: %s. ApproxPL: %.2f. OldBalance: %.2f -> NewBalance: %.2f. Duration: %d min.  %s",
+                reason,
+                approximatePnL,
+                oldBalance,
+                this.balance,
+                openDuration,
+                DateUtils.convertToDateTime(dealData))
+        );
         System.out.println(currentDeal.getMessage());
-
         closedDeals.add(currentDeal);
         currentDeal = null;
     }
 
     public double calculateWinRate() {
         if (closedDeals.isEmpty()) {
-            System.out.printf("[DEAL] Positive. No closed deals available to calculate win rate. final amount: " + balance);
+            System.out.println("[DEAL] No closed deals, cannot calculate win rate. Final: " + balance);
             return 0.0;
         }
-
-        long wins = closedDeals.stream().filter(deal -> deal.getClosedAmount() > deal.getOpenAmountUSDT()).count();
+        long wins = closedDeals.stream()
+                .filter(deal -> deal.getClosedAmount() > deal.getOpenAmountUSDT())
+                .count();
         long losses = closedDeals.size() - wins;
-
-        double winPercentage = (double) wins / closedDeals.size() * 100;
-        System.out.printf("[DEAL] Positive P/L deals: %d, Negative P/L deals: %d, winPercentage " + winPercentage + " final amount: " + balance + " sumloss " + sumLoss + " sum profit " + sumProfit, wins, losses);
+        double winPercentage = (double) wins / closedDeals.size() * 100.0;
+        System.out.printf("[DEAL] Wins: %d, Losses: %d, WinRate: %.2f%%, FinalBal: %.2f, SumLoss: %.2f, SumProfit: %.2f%n",
+                wins, losses, winPercentage, balance, sumLoss, sumProfit);
         return winPercentage;
     }
 }

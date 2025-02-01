@@ -2,6 +2,7 @@ package com.github.istin.tradingaizer;
 
 import com.github.istin.tradingaizer.chart.ChartDataProvider;
 import com.github.istin.tradingaizer.model.DecisionReason;
+import com.github.istin.tradingaizer.trader.FakeDealExecutor;
 import com.github.istin.tradingaizer.report.ReportUtils;
 import com.github.istin.tradingaizer.strategy.OptimizedStrategy;
 import com.github.istin.tradingaizer.strategy.Strategy;
@@ -14,13 +15,13 @@ import java.util.List;
 
 public class StrategyTestingApp {
 
-    static String TICKER = "XRPUSDT";
+    static String TICKER = "BTCUSDT";
 
     public static void main(String[] args) {
         // 1) Load historical data once
         long endTime = System.currentTimeMillis();
         //long endTime = System.currentTimeMillis();
-        long threeMonthsAgo = endTime - (1L * 30 * 24 * 60 * 60 * 1000);
+        long threeMonthsAgo = endTime - (1L * 7 * 24 * 60 * 60 * 1000);
         BinanceDataUtils.Result result = BinanceDataUtils.readDataFromBinance(TICKER, "1m", threeMonthsAgo, endTime);
         List<? extends StatDealData> fullHistory = result.historicalData();
         if (fullHistory.isEmpty()) {
@@ -42,7 +43,7 @@ public class StrategyTestingApp {
         double step = 0.01;
         double start = 0.1;
         double end   = 0.5;
-        double[] maxLossRange = generateRange(0.01, 0.03, step);
+        double[] maxLossRange = generateRange(0.01, 0.01, step);
         double[] minProfitRange = generateRange(0.04, 0.04d, step);
 
         // Tracking best result
@@ -95,24 +96,7 @@ public class StrategyTestingApp {
      */
     @NotNull
     private static Trader createTrader(double maximumLoss, double minimumProfit) {
-        return new Trader(TICKER, maximumLoss, minimumProfit, 1d, new DealExecutor() {
-            @Override
-            public double getBalance() {
-                return 1000d;
-            }
-
-            @Override
-            public void submitDeal(Deal deal) {}
-
-            @Override
-            public void closeDeal(Deal deal, double closePrice) {}
-
-            @Override
-            public Deal getCurrentDeal(String ticker) { return null; }
-
-            @Override
-            public void updateStopLoss(Deal deal, double newStopLoss) {}
-        });
+        return new Trader(TICKER, maximumLoss, minimumProfit, 1d, new FakeDealExecutor(1000d));
     }
 
     /**
@@ -142,4 +126,5 @@ public class StrategyTestingApp {
         }
         return result;
     }
+
 }
