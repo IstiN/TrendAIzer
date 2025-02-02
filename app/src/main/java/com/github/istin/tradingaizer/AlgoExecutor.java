@@ -3,12 +3,10 @@ package com.github.istin.tradingaizer;
 import com.github.istin.tradingaizer.chart.ChartDataProvider;
 import com.github.istin.tradingaizer.config.Config;
 import com.github.istin.tradingaizer.config.ConfigReader;
-import com.github.istin.tradingaizer.model.Decision;
 import com.github.istin.tradingaizer.model.DecisionReason;
 import com.github.istin.tradingaizer.strategy.OptimizedStrategy;
 import com.github.istin.tradingaizer.strategy.Strategy;
 import com.github.istin.tradingaizer.trader.BinanceDealExecutor;
-import com.github.istin.tradingaizer.trader.Deal;
 import com.github.istin.tradingaizer.trader.StatDealData;
 import com.github.istin.tradingaizer.trader.Trader;
 import com.github.istin.tradingaizer.utils.BinanceDataUtils;
@@ -22,7 +20,7 @@ public class AlgoExecutor {
         String ticker = "BTCUSDT";
         long now = System.currentTimeMillis();
         long startTime = now - 20 * 60 * 60 * 1000;
-        BinanceDataUtils.Result result = BinanceDataUtils.readDataFromBinance(ticker, "5m", startTime, now);
+        BinanceDataUtils.Result result = BinanceDataUtils.readDataFromBinanceFuture(ticker, "5m", startTime, now);
 
         BinanceDealExecutor dealExecutor = new BinanceDealExecutor(config.getApiKey(), config.getApiSecret());
         List<? extends StatDealData> historicalData = result.historicalData();

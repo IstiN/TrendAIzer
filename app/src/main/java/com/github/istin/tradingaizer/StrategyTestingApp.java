@@ -2,11 +2,12 @@ package com.github.istin.tradingaizer;
 
 import com.github.istin.tradingaizer.chart.ChartDataProvider;
 import com.github.istin.tradingaizer.model.DecisionReason;
-import com.github.istin.tradingaizer.trader.FakeDealExecutor;
-import com.github.istin.tradingaizer.report.ReportUtils;
 import com.github.istin.tradingaizer.strategy.OptimizedStrategy;
 import com.github.istin.tradingaizer.strategy.Strategy;
-import com.github.istin.tradingaizer.trader.*;
+import com.github.istin.tradingaizer.trader.FakeDealExecutor;
+import com.github.istin.tradingaizer.trader.StatData;
+import com.github.istin.tradingaizer.trader.StatDealData;
+import com.github.istin.tradingaizer.trader.Trader;
 import com.github.istin.tradingaizer.utils.BinanceDataUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,10 +20,10 @@ public class StrategyTestingApp {
 
     public static void main(String[] args) {
         // 1) Load historical data once
-        long endTime = System.currentTimeMillis();
+        long endTime = 1738490404887L;
         //long endTime = System.currentTimeMillis();
         long threeMonthsAgo = endTime - (1L * 7 * 24 * 60 * 60 * 1000);
-        BinanceDataUtils.Result result = BinanceDataUtils.readDataFromBinance(TICKER, "1m", threeMonthsAgo, endTime);
+        BinanceDataUtils.Result result = BinanceDataUtils.readDataFromBinanceFuture(TICKER, "5m", threeMonthsAgo, endTime);
         List<? extends StatDealData> fullHistory = result.historicalData();
         if (fullHistory.isEmpty()) {
             System.err.println("No data loaded!");
@@ -85,10 +86,10 @@ public class StrategyTestingApp {
                 ", minimumProfit=" + bestMinProfit);
 
         // (Optional) final run with best params, produce report
-        Trader bestTrader = createTrader(bestMaxLoss, bestMinProfit);
-        runSimulation(bestTrader, strategy, fullHistory, TICKER);
-        List<Deal> closedDeals = bestTrader.getClosedDeals();
-        ReportUtils.generateReport("trading_chart.html", closedDeals, fullHistory);
+//        Trader bestTrader = createTrader(bestMaxLoss, bestMinProfit);
+//        runSimulation(bestTrader, strategy, fullHistory, TICKER);
+//        List<Deal> closedDeals = bestTrader.getClosedDeals();
+//        ReportUtils.generateReport("trading_chart.html", closedDeals, fullHistory);
     }
 
     /**

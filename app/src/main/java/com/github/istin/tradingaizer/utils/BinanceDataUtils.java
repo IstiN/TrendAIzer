@@ -3,6 +3,7 @@ package com.github.istin.tradingaizer.utils;
 import com.github.istin.tradingaizer.config.Config;
 import com.github.istin.tradingaizer.config.ConfigReader;
 import com.github.istin.tradingaizer.provider.BinanceDataProvider;
+import com.github.istin.tradingaizer.provider.BinanceFutureDataProvider;
 import com.github.istin.tradingaizer.provider.DataProvider;
 import com.github.istin.tradingaizer.trader.StatDealData;
 import org.jetbrains.annotations.NotNull;
@@ -141,6 +142,19 @@ public class BinanceDataUtils {
         ConfigReader configReader = new ConfigReader();
         Config config = configReader.getConfig();
         DataProvider dataProvider = new BinanceDataProvider(config.getApiKey(), config.getApiSecret());
+        //long endTime = System.currentTimeMillis();
+
+        String cacheId = ticker + "_" + interval + "_" + endTime + "_" + startTime;
+
+        List<? extends StatDealData> historicalData = dataProvider.fetchHistoricalData(ticker, interval, startTime, endTime);
+        return new Result(cacheId, historicalData);
+    }
+
+    @NotNull
+    public static Result readDataFromBinanceFuture(String ticker, String interval, long startTime, long endTime) {
+        ConfigReader configReader = new ConfigReader();
+        Config config = configReader.getConfig();
+        DataProvider dataProvider = new BinanceFutureDataProvider(config.getApiKey(), config.getApiSecret());
         //long endTime = System.currentTimeMillis();
 
         String cacheId = ticker + "_" + interval + "_" + endTime + "_" + startTime;
