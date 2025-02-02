@@ -58,7 +58,7 @@ public class Trader {
                         decisionReason.getReason(),
                         DateUtils.convertToDateTime(dealData));
                 try {
-                    Thread.sleep(500);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

@@ -24,6 +24,13 @@ public class BinanceDealExecutor implements DealExecutor {
         );
     }
 
+    public void getKlineData(String symbol, String interval) {
+        LinkedHashMap<String, Object> parameters = new LinkedHashMap<>();
+        parameters.put("symbol", symbol);
+        parameters.put("interval", interval);
+        String klines = client.market().klines(parameters);
+    }
+
     @Override
     public double getBalance() {
         String response = client.account().futuresAccountBalance(new LinkedHashMap<>());
@@ -90,6 +97,7 @@ public class BinanceDealExecutor implements DealExecutor {
         parameters.put("side", deal.getDirection() == Direction.LONG ? "SELL" : "BUY");
         parameters.put("type", "MARKET");
         parameters.put("quantity", Math.abs(deal.getOpenedData().getVolume()));
+        parameters.put("reduceOnly", "true");
         try {
             String result = client.account().newOrder(parameters);
             logger.info("Deal closed: {}", result);
